@@ -241,6 +241,7 @@ public enum CacheGroup: String, Codable, CaseIterable, Sendable {
     case editors
     case testing
     case docker
+    case trash
 
     public var title: String {
         switch self {
@@ -250,6 +251,7 @@ public enum CacheGroup: String, Codable, CaseIterable, Sendable {
         case .editors: "Editors"
         case .testing: "Browsers for testing"
         case .docker: "Docker"
+        case .trash: "Trash"
         }
     }
 }
@@ -397,12 +399,13 @@ public struct ScanResult: Codable, Sendable {
     }
 
     public var projectBytes: Int64 { projects.reduce(0) { $0 + $1.reclaimable } }
-    public var cacheBytes: Int64 { caches.filter { $0.group != .docker }.reduce(0) { $0 + $1.size.reclaimable } }
+    public var cacheBytes: Int64 { caches.filter { $0.group != .docker && $0.group != .trash }.reduce(0) { $0 + $1.size.reclaimable } }
     public var dockerBytes: Int64 { caches.filter { $0.group == .docker }.reduce(0) { $0 + $1.size.reclaimable } }
+    public var trashBytes: Int64 { caches.filter { $0.group == .trash }.reduce(0) { $0 + $1.size.reclaimable } }
     public var simulatorBytes: Int64 {
         simulators.reduce(0) { $0 + $1.size.reclaimable } + runtimes.filter(\.isDeletable).reduce(0) { $0 + $1.sizeBytes }
     }
-    public var totalReclaimable: Int64 { projectBytes + cacheBytes + dockerBytes + simulatorBytes }
+    public var totalReclaimable: Int64 { projectBytes + cacheBytes + dockerBytes + simulatorBytes + trashBytes }
 }
 
 public struct ScanProgress: Sendable {

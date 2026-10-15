@@ -5,7 +5,7 @@ struct CleanSheet: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
     @State private var mode: DeleteMode = .trash
-    @State private var emptiedTrash = false
+    @State private var emptiedTrash: (freed: Int64, skipped: Int)?
     @State private var isEmptyingTrash = false
 
     var body: some View {
@@ -111,6 +111,9 @@ struct CleanSheet: View {
         var text = mode == .trash
             ? "Folders go to the Trash so you can put them back. They keep using space until the Trash is emptied."
             : "Folders are deleted right away and can't be restored."
+        if model.selectedTargets.contains(where: { $0.id == "cache:\(CacheCatalog.trashID)" }) {
+            text += " The Trash itself is always emptied permanently."
+        }
         if commandCount > 0 {
             text += " \(commandCount) \(commandCount == 1 ? "item uses its" : "items use their") tool's own clean command (like pnpm store prune or Docker), which always deletes directly."
         }
@@ -160,38 +163,66 @@ struct CleanSheet: View {
 
     // MARK: Done
 
+    private func headline(_ report: CleanReport, cleanedAny: Bool) -> String {
+        guard cleanedAny else { return "Nothing was cleaned" }
+        if report.trashedBytes == 0 { return "Freed \(formatBytes(report.freedBytes))" }
+        if report.freedBytes == 0 { return "Moved \(formatBytes(report.trashedBytes)) to the Trash" }
+        return "Cleaned \(formatBytes(report.cleanedBytes))"
+    }
+
+    private func outcomeList(_ title: String, _ outcomes: [CleanOutcome], symbol: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(title).font(.headline)
+            ForEach(outcomes) { outcome in
+                HStack(alignment: .top) {
+                    Image(systemName: symbol).foregroundStyle(color)
+                    VStack(alignment: .leading, spacing: 1) {
+                        Text(outcome.title)
+                        Text(outcome.message ?? "Failed").font(.caption).foregroundStyle(.secondary)
+                    }
+                    Spacer()
+                    if outcome.bytes > 0 {
+                        SizeText(bytes: outcome.bytes).font(.caption)
+                    }
+                }
+            }
+        }
+    }
+
     private func done(_ report: CleanReport) -> some View {
         VStack(spacing: 20) {
             let cleanedAny = report.outcomes.contains(where: \.succeeded)
-            Image(systemName: report.failures.isEmpty ? "checkmark.circle.fill" : cleanedAny ? "exclamationmark.circle.fill" : "xmark.circle.fill")
+            let clean = report.failures.isEmpty && report.partials.isEmpty
+            Image(systemName: clean ? "checkmark.circle.fill" : cleanedAny ? "exclamationmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(report.failures.isEmpty ? .green : cleanedAny ? .orange : .red)
+                .foregroundStyle(clean ? .green : cleanedAny ? .orange : .red)
                 .symbolEffect(.bounce, value: report.date)
 
             VStack(spacing: 6) {
-                Text(cleanedAny ? "Cleaned \(formatBytes(report.cleanedBytes))" : "Nothing was cleaned")
+                Text(headline(report, cleanedAny: cleanedAny))
                     .font(.title.weight(.semibold))
                     .monospacedDigit()
+                    .multilineTextAlignment(.center)
                 if !cleanedAny {
                     Text("Nothing was deleted. The reasons are below.")
                         .foregroundStyle(.secondary)
-                }
-                if report.diskFreedBytes > 0 {
-                    Text("Your disk has \(formatBytes(report.diskFreedBytes)) more free space.")
+                } else if report.freedBytes > 0, report.trashedBytes > 0 {
+                    Text("\(formatBytes(report.freedBytes)) freed now · \(formatBytes(report.trashedBytes)) moved to the Trash")
                         .foregroundStyle(.secondary)
+                        .monospacedDigit()
                 }
             }
 
-            if report.trashedBytes > 0, !emptiedTrash {
+            if report.trashedBytes > 0, emptiedTrash == nil {
                 VStack(spacing: 10) {
-                    Text("\(formatBytes(report.trashedBytes)) is in the Trash and still uses space.")
+                    Text("\(formatBytes(report.trashedBytes)) is in the Trash and still uses space until it's emptied.")
                         .foregroundStyle(.secondary)
+                        .multilineTextAlignment(.center)
                     Button {
                         isEmptyingTrash = true
                         Task {
-                            await model.emptyFromTrash(report)
+                            emptiedTrash = await model.emptyFromTrash(report)
                             isEmptyingTrash = false
-                            emptiedTrash = true
                         }
                     } label: {
                         if isEmptyingTrash {
@@ -211,25 +242,31 @@ struct CleanSheet: View {
                 .padding(14)
                 .frame(maxWidth: .infinity)
                 .card(cornerRadius: 12)
-            } else if emptiedTrash {
-                Label("Removed from the Trash", systemImage: "checkmark")
-                    .foregroundStyle(.green)
-            }
-
-            if !report.failures.isEmpty {
-                VStack(alignment: .leading, spacing: 6) {
-                    Text("Skipped").font(.headline)
-                    ForEach(report.failures) { failure in
-                        HStack(alignment: .top) {
-                            Image(systemName: "xmark.circle.fill").foregroundStyle(.red)
-                            VStack(alignment: .leading) {
-                                Text(failure.title)
-                                Text(failure.message ?? "Failed").font(.caption).foregroundStyle(.secondary)
-                            }
-                        }
+            } else if let emptiedTrash {
+                VStack(spacing: 4) {
+                    Label("Freed \(formatBytes(emptiedTrash.freed)) from the Trash", systemImage: "checkmark")
+                        .foregroundStyle(.green)
+                    if emptiedTrash.skipped > 0 {
+                        Text("\(emptiedTrash.skipped) read-only or protected \(emptiedTrash.skipped == 1 ? "item was" : "items were") left in the Trash.")
+                            .font(.caption)
+                            .foregroundStyle(.secondary)
                     }
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+
+            if !report.partials.isEmpty || !report.failures.isEmpty {
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        if !report.partials.isEmpty {
+                            outcomeList("Partly cleaned", report.partials, symbol: "exclamationmark.circle.fill", color: .orange)
+                        }
+                        if !report.failures.isEmpty {
+                            outcomeList("Skipped", report.failures, symbol: "xmark.circle.fill", color: .red)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .frame(maxHeight: 200)
             }
 
             if model.result?.hasLocalSnapshots == true {

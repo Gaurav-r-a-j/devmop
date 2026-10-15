@@ -228,8 +228,8 @@ struct HistoryRow: View {
             VStack(alignment: .leading, spacing: 8) {
                 ForEach(report.outcomes) { outcome in
                     HStack(alignment: .top, spacing: 8) {
-                        Image(systemName: outcome.succeeded ? "checkmark.circle.fill" : "xmark.circle.fill")
-                            .foregroundStyle(outcome.succeeded ? .green : .red)
+                        Image(systemName: outcome.isPartial ? "exclamationmark.circle.fill" : outcome.succeeded ? "checkmark.circle.fill" : "xmark.circle.fill")
+                            .foregroundStyle(outcome.isPartial ? .orange : outcome.succeeded ? .green : .red)
                         VStack(alignment: .leading, spacing: 2) {
                             Text(outcome.title)
                             if let message = outcome.message {

@@ -71,6 +71,7 @@ extension CacheGroup {
         case .editors: .indigo
         case .testing: .pink
         case .docker: .cyan
+        case .trash: .brown
         }
     }
 }
@@ -81,7 +82,7 @@ extension Project {
 }
 
 enum Category: String, CaseIterable, Identifiable {
-    case projects, caches, simulators, docker
+    case projects, caches, simulators, docker, trash
 
     var id: String { rawValue }
 
@@ -91,6 +92,7 @@ enum Category: String, CaseIterable, Identifiable {
         case .caches: "Caches"
         case .simulators: "Simulators"
         case .docker: "Docker"
+        case .trash: "Trash"
         }
     }
 
@@ -100,6 +102,7 @@ enum Category: String, CaseIterable, Identifiable {
         case .caches: .purple
         case .simulators: .orange
         case .docker: .cyan
+        case .trash: .brown
         }
     }
 
@@ -109,6 +112,15 @@ enum Category: String, CaseIterable, Identifiable {
         case .caches: "archivebox.fill"
         case .simulators: "iphone.gen3"
         case .docker: "shippingbox.fill"
+        case .trash: "trash.fill"
+        }
+    }
+
+    var section: SidebarSection {
+        switch self {
+        case .projects: .projects
+        case .caches, .docker, .trash: .caches
+        case .simulators: .simulators
         }
     }
 
@@ -118,7 +130,73 @@ enum Category: String, CaseIterable, Identifiable {
         case .caches: result.cacheBytes
         case .simulators: result.simulatorBytes
         case .docker: result.dockerBytes
+        case .trash: result.trashBytes
         }
+    }
+}
+
+/// One coloured slice of the disk breakdown on the Overview.
+struct BreakdownItem: Identifiable {
+    let id: String
+    let title: String
+    let bytes: Int64
+    let color: Color
+    let section: SidebarSection?
+
+    private static func rgb(_ red: Double, _ green: Double, _ blue: Double) -> Color {
+        Color(red: red / 255, green: green / 255, blue: blue / 255)
+    }
+
+    private static let projectKinds: [(id: String, title: String, color: Color, rules: Set<String>)] = [
+        ("node-modules", "node_modules", rgb(10, 132, 255), ["node-modules"]),
+        ("framework-builds", "Framework builds (.next, dist…)", rgb(94, 92, 230),
+         ["next", "nuxt", "nuxt-output", "svelte-kit", "astro", "docusaurus", "expo", "storybook", "node-dist", "node-build", "node-out"]),
+        ("python-envs", "Python environments", rgb(48, 176, 199), ["venv", "venv-plain"]),
+        ("native-builds", "Native & JVM builds", rgb(100, 210, 255),
+         ["rust-target", "maven-target", "swiftpm", "pods", "gradle-build", "dart-tool", "flutter-build", "elixir-build", "elixir-deps", "composer-vendor", "dotnet-bin", "dotnet-obj", "terraform"]),
+        ("project-caches", "Tool caches in projects (.turbo…)", rgb(90, 200, 250), []),
+    ]
+
+    private static let cacheColors: [CacheGroup: Color] = [
+        .packageManagers: rgb(191, 90, 242),
+        .apple: rgb(255, 55, 95),
+        .languages: rgb(175, 82, 222),
+        .editors: rgb(218, 143, 255),
+        .testing: rgb(255, 105, 180),
+    ]
+
+    static func breakdown(for result: ScanResult) -> [BreakdownItem] {
+        var items: [BreakdownItem] = []
+
+        let artifacts = result.projects.flatMap { $0.artifacts.filter { $0.kind == .folder } }
+        var assigned = Set<String>()
+        for kind in projectKinds {
+            let matching = kind.rules.isEmpty
+                ? artifacts.filter { !assigned.contains($0.ruleID) }
+                : artifacts.filter { kind.rules.contains($0.ruleID) }
+            assigned.formUnion(kind.rules)
+            let bytes = matching.reduce(0) { $0 + $1.size.reclaimable }
+            items.append(BreakdownItem(id: kind.id, title: kind.title, bytes: bytes, color: kind.color, section: .projects))
+        }
+
+        for group in CacheGroup.allCases where group != .docker && group != .trash {
+            let bytes = result.caches.filter { $0.group == group }.reduce(0) { $0 + $1.size.reclaimable }
+            items.append(BreakdownItem(id: "cache-\(group.rawValue)", title: group.title + (group == .apple ? " caches" : ""),
+                                       bytes: bytes, color: cacheColors[group] ?? .purple, section: .caches))
+        }
+
+        let devices = result.simulators.reduce(0) { $0 + $1.size.reclaimable }
+        let runtimes = result.runtimes.filter(\.isDeletable).reduce(0) { $0 + $1.sizeBytes }
+        items.append(BreakdownItem(id: "sim-devices", title: "Simulator devices", bytes: devices, color: rgb(255, 159, 10), section: .simulators))
+        items.append(BreakdownItem(id: "sim-runtimes", title: "Simulator runtimes", bytes: runtimes, color: rgb(255, 204, 0), section: .simulators))
+        items.append(BreakdownItem(id: "docker", title: "Docker", bytes: result.dockerBytes, color: rgb(50, 173, 230), section: .caches))
+        items.append(BreakdownItem(id: "trash", title: "Trash", bytes: result.trashBytes, color: rgb(172, 142, 104), section: .caches))
+
+        if let disk = result.disk {
+            let other = max(0, disk.used - result.totalReclaimable)
+            items.append(BreakdownItem(id: "other", title: "Apps, documents & system", bytes: other, color: Color.gray.opacity(0.55), section: nil))
+        }
+        return items.filter { $0.bytes > 0 }
     }
 }
 
@@ -287,14 +365,7 @@ struct StorageBar: View {
     }
 
     static func segments(for result: ScanResult) -> [Segment] {
-        var segments = Category.allCases.map { category in
-            Segment(id: category.rawValue, title: category.title, bytes: category.bytes(in: result), color: category.color)
-        }
-        if let disk = result.disk {
-            let other = max(0, disk.used - result.totalReclaimable)
-            segments.append(Segment(id: "other", title: "Everything else", bytes: other, color: Color.gray.opacity(0.55)))
-        }
-        return segments
+        BreakdownItem.breakdown(for: result).map { Segment(id: $0.id, title: $0.title, bytes: $0.bytes, color: $0.color) }
     }
 }
 

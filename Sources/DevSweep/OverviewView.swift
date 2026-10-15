@@ -24,15 +24,27 @@ struct OverviewView: View {
     @ViewBuilder
     private func storage(_ result: ScanResult) -> some View {
         if let disk = result.disk {
-            VStack(alignment: .leading, spacing: 12) {
+            let items = BreakdownItem.breakdown(for: result)
+            VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .firstTextBaseline) {
                     Text("Macintosh HD").font(.title3.weight(.semibold))
                     Spacer()
-                    Text("\(formatBytes(disk.available)) available of \(formatBytes(disk.total))")
+                    Text("\(formatBytes(disk.used)) used · \(formatBytes(disk.available)) available of \(formatBytes(disk.total))")
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                StorageBar(segments: StorageBar.segments(for: result), total: disk.total)
+                StorageBar(segments: StorageBar.segments(for: result), total: disk.total, height: 26, showsLegend: false)
+
+                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 20, alignment: .top)], alignment: .leading, spacing: 4) {
+                    ForEach(items) { item in
+                        BreakdownRow(item: item, total: disk.total) {
+                            if let section = item.section { model.section = section }
+                        }
+                    }
+                    BreakdownRow(item: BreakdownItem(id: "free", title: "Available", bytes: disk.available,
+                                                     color: Color.secondary.opacity(0.18), section: nil),
+                                 total: disk.total, action: nil)
+                }
             }
             .padding(20)
             .card()
@@ -88,23 +100,14 @@ struct OverviewView: View {
                        title: "Docker isn't running",
                        message: "Start Docker Desktop to see how much its images and build cache use.")
             }
-            if result.trashSize > 1_000_000_000 {
-                Notice(symbol: "trash", color: .gray,
-                       title: "\(formatBytes(result.trashSize)) is in the Trash",
-                       message: "Empty the Trash in Finder to get this space back.")
-            }
         }
     }
 
     private func categories(_ result: ScanResult) -> some View {
-        LazyVGrid(columns: [GridItem(.adaptive(minimum: 200), spacing: 16)], spacing: 16) {
+        LazyVGrid(columns: [GridItem(.adaptive(minimum: 170), spacing: 16)], spacing: 16) {
             ForEach(Category.allCases) { category in
                 Button {
-                    switch category {
-                    case .projects: model.section = .projects
-                    case .caches, .docker: model.section = .caches
-                    case .simulators: model.section = .simulators
-                    }
+                    model.section = category.section
                 } label: {
                     CategoryCard(category: category, bytes: category.bytes(in: result), detail: detail(for: category, in: result))
                 }
@@ -122,6 +125,8 @@ struct OverviewView: View {
             return "\(result.caches.filter { $0.group != .docker }.count) caches"
         case .simulators:
             return "\(result.simulators.count) devices · \(result.runtimes.count) runtimes"
+        case .trash:
+            return result.trashBytes > 0 ? "Empty it from DevSweep" : "Empty"
         case .docker:
             switch result.dockerRunning {
             case .some(true): return "Images and build cache"
@@ -239,5 +244,48 @@ struct Notice: View {
         }
         .padding(14)
         .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+    }
+}
+
+struct BreakdownRow: View {
+    let item: BreakdownItem
+    let total: Int64
+    let action: (() -> Void)?
+    @State private var isHovered = false
+
+    var body: some View {
+        Button {
+            action?()
+        } label: {
+            HStack(spacing: 10) {
+                RoundedRectangle(cornerRadius: 3, style: .continuous)
+                    .fill(item.color.gradient)
+                    .frame(width: 12, height: 12)
+                Text(item.title)
+                    .lineLimit(1)
+                Spacer(minLength: 8)
+                Text(formatBytes(item.bytes))
+                    .monospacedDigit()
+                    .fontWeight(.medium)
+                Text(percent)
+                    .monospacedDigit()
+                    .foregroundStyle(.secondary)
+                    .frame(width: 44, alignment: .trailing)
+            }
+            .font(.callout)
+            .padding(.horizontal, 8)
+            .padding(.vertical, 6)
+            .background(isHovered && action != nil ? Color.primary.opacity(0.06) : .clear, in: RoundedRectangle(cornerRadius: 7, style: .continuous))
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .disabled(action == nil)
+        .onHover { isHovered = $0 }
+        .help(action == nil ? "" : "Show in DevSweep")
+    }
+
+    private var percent: String {
+        let value = Double(item.bytes) / Double(max(total, 1)) * 100
+        return value < 0.1 ? "<0.1%" : String(format: "%.1f%%", value)
     }
 }

@@ -99,8 +99,13 @@ public enum CacheCatalog {
             CacheItem(id: "cypress", name: "Cypress binaries", group: .testing, symbol: "theatermasks",
                       detail: "Downloaded Cypress apps.",
                       paths: ["\(caches)/Cypress"], tier: .rebuildable, method: .deleteContents),
+            CacheItem(id: trashID, name: "Trash", group: .trash, symbol: "trash",
+                      detail: "Files you already deleted. Emptying removes them for good and can't be undone.",
+                      paths: ["\(home)/.Trash"], tier: .review, method: .deleteContents),
         ] + editorCaches(library: library)
     }
+
+    public static let trashID = "trash"
 
     private static func editorCaches(library: String) -> [CacheItem] {
         let editors: [(id: String, name: String, folder: String, process: String)] = [
@@ -147,7 +152,7 @@ public enum CacheCatalog {
     }
 
     /// The catalog entry for `id` with live paths and tool locations, ignoring anything stored from a past scan.
-    static func trustedItem(id: String) -> CacheItem? {
+    public static func trustedItem(id: String) -> CacheItem? {
         guard var item = definitions().first(where: { $0.id == id }) else { return nil }
         item.paths = item.paths.filter { FileManager.default.fileExists(atPath: $0) }
         if case .command(let tool, _) = item.method {

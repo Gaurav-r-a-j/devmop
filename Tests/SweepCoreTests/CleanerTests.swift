@@ -158,4 +158,31 @@ import Testing
         #expect(loaded?.projects.first?.path == fx.path("app"))
         #expect(loaded?.trashSize == 12)
     }
+
+    @Test func partialCleanReportsMeasuredBytesAndSkippedItems() async {
+        let fx = Fixture()
+        await withHistory(fx) {
+
+            let project = fx.dir("app")
+            fx.write("app/package.json", "{}")
+            fx.file("app/node_modules/a/index.js", bytes: 300_000)
+            fx.file("app/node_modules/ro/keep.js", bytes: 20_000)
+            chmod(fx.path("app/node_modules/ro"), 0o555)
+
+            let estimate = SizeInfo(allocated: 999_999_999, reclaimable: 999_999_999)
+            let artifact = folderArtifact(fx.path("app/node_modules"), size: estimate)
+            let report = await Cleaner.clean([.artifact(artifact, project: sampleProject(project))], mode: .permanent)
+            let outcome = report.outcomes[0]
+
+            #expect(outcome.succeeded)
+            #expect(outcome.isPartial)
+            #expect((outcome.skippedItems ?? 0) >= 1)
+            #expect(outcome.bytes < 999_999_999)
+            #expect(outcome.bytes >= 300_000)
+            #expect(outcome.freedNow == outcome.bytes)
+            #expect(outcome.movedToTrash == 0)
+            #expect(report.partials.count == 1)
+            #expect(fx.exists("app/node_modules/ro/keep.js"))
+        }
+    }
 }

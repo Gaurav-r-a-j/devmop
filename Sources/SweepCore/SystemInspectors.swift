@@ -121,6 +121,14 @@ public enum DockerInspector {
         return (true, items.filter { $0.size.reclaimable > 0 })
     }
 
+    /// Reads "Total reclaimed space: 1.2GB" from a prune command's output.
+    static func reclaimed(in output: String) -> Int64? {
+        guard let line = output.split(separator: "\n").last(where: { $0.contains("reclaimed space") }),
+              let value = line.split(separator: ":").last
+        else { return nil }
+        return parseSize(value.trimmingCharacters(in: .whitespaces))
+    }
+
     /// Parses Docker's decimal sizes such as "27.25GB (93%)" or "163.8kB".
     static func parseSize(_ text: String) -> Int64 {
         let value = text.split(separator: " ").first.map(String.init) ?? ""

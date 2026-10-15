@@ -295,7 +295,7 @@ final class AppModel {
     private func refreshAfterClean(_ report: CleanReport) async {
         guard let current = result else { return }
         let cleaned = Set(report.outcomes.filter(\.succeeded).map(\.targetID))
-        let items = current.caches.filter { $0.group != .docker && cleaned.contains(id(for: $0)) }
+        let items = current.caches.filter { $0.group != .docker && $0.group != .trash && cleaned.contains(id(for: $0)) }
         let paths = items.flatMap(\.paths) + [SystemInfo.trashPath]
         let sizes = await DirectorySizer.sizes(of: paths)
 
@@ -303,22 +303,36 @@ final class AppModel {
         for index in updated.caches.indices where items.contains(where: { $0.id == updated.caches[index].id }) {
             updated.caches[index].size = updated.caches[index].paths.compactMap { sizes[$0] }.reduce(.zero, +)
         }
-        updated.caches.removeAll { $0.size.allocated == 0 }
-        updated.trashSize = sizes[SystemInfo.trashPath]?.allocated ?? updated.trashSize
+        updated.caches.removeAll { $0.group != .trash && $0.size.allocated == 0 }
+        Self.setTrash(sizes[SystemInfo.trashPath], in: &updated)
         updated.disk = SystemInfo.disk() ?? updated.disk
         result = updated
         saveCache()
     }
 
-    func emptyFromTrash(_ report: CleanReport) async {
+    /// Permanently deletes what this cleanup moved to the Trash; returns bytes freed and items left in place.
+    func emptyFromTrash(_ report: CleanReport) async -> (freed: Int64, skipped: Int) {
         let paths = report.trashedPaths
-        await Task.detached(priority: .userInitiated) { _ = Cleaner.emptyFromTrash(paths) }.value
+        let outcome = await Task.detached(priority: .userInitiated) { Cleaner.emptyFromTrash(paths) }.value
         let trash = await DirectorySizer.sizes(of: [SystemInfo.trashPath])
-        guard var updated = result else { return }
+        guard var updated = result else { return (outcome.freed, outcome.skipped) }
+        Self.setTrash(trash[SystemInfo.trashPath], in: &updated)
         updated.disk = SystemInfo.disk() ?? updated.disk
-        updated.trashSize = trash[SystemInfo.trashPath]?.allocated ?? updated.trashSize
         result = updated
         saveCache()
+        return (outcome.freed, outcome.skipped)
+    }
+
+    private static func setTrash(_ size: SizeInfo?, in result: inout ScanResult) {
+        guard let size else { return }
+        result.trashSize = size.allocated
+        if let index = result.caches.firstIndex(where: { $0.id == CacheCatalog.trashID }) {
+            result.caches[index].size = size
+            if size.allocated == 0 { result.caches.remove(at: index) }
+        } else if size.allocated > 0, var item = CacheCatalog.trustedItem(id: CacheCatalog.trashID) {
+            item.size = size
+            result.caches.append(item)
+        }
     }
 
     // MARK: Helpers

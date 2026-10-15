@@ -110,7 +110,8 @@ struct SafetyTests {
         let fx = Fixture()
         let outside = fx.file("keep.txt")
         let removed = Cleaner.emptyFromTrash([outside, SystemInfo.trashPath, SystemInfo.trashPath + "/../Documents"])
-        #expect(removed == 0)
+        #expect(removed.removed == 0)
+        #expect(removed.freed == 0)
         #expect(fx.exists("keep.txt"))
     }
 }

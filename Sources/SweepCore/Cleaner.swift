@@ -76,6 +76,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         switch self {
         case .artifact(let artifact, _): return artifact.kind == .folder
         case .cache(let item):
+            if item.id == CacheCatalog.trashID { return false }
             if case .command = item.effectiveMethod { return false }
             return true
         case .simulator, .runtime: return false
@@ -88,11 +89,20 @@ public struct CleanOutcome: Codable, Hashable, Sendable, Identifiable {
     public let targetID: String
     public let title: String
     public let path: String?
+    /// Bytes removed (freed now plus moved to the Trash), measured before and after.
     public let bytes: Int64
     public let succeeded: Bool
     public let message: String?
     public let rebuildHint: String?
     public let trashedPaths: [String]
+    public let freedBytes: Int64?
+    public let trashedBytes: Int64?
+    /// Files or folders left in place because they are read-only, locked or owned by another user.
+    public let skippedItems: Int?
+
+    public var freedNow: Int64 { freedBytes ?? (trashedPaths.isEmpty ? bytes : 0) }
+    public var movedToTrash: Int64 { trashedBytes ?? (trashedPaths.isEmpty ? 0 : bytes) }
+    public var isPartial: Bool { succeeded && (skippedItems ?? 0) > 0 }
 }
 
 public struct CleanReport: Codable, Hashable, Sendable, Identifiable {
@@ -103,8 +113,10 @@ public struct CleanReport: Codable, Hashable, Sendable, Identifiable {
     public var diskFreedBytes: Int64
 
     public var cleanedBytes: Int64 { outcomes.filter(\.succeeded).reduce(0) { $0 + $1.bytes } }
-    public var trashedBytes: Int64 { outcomes.filter { $0.succeeded && !$0.trashedPaths.isEmpty }.reduce(0) { $0 + $1.bytes } }
+    public var freedBytes: Int64 { outcomes.filter(\.succeeded).reduce(0) { $0 + $1.freedNow } }
+    public var trashedBytes: Int64 { outcomes.filter(\.succeeded).reduce(0) { $0 + $1.movedToTrash } }
     public var failures: [CleanOutcome] { outcomes.filter { !$0.succeeded } }
+    public var partials: [CleanOutcome] { outcomes.filter(\.isPartial) }
     public var trashedPaths: [String] { outcomes.flatMap(\.trashedPaths) }
 }
 
@@ -115,7 +127,7 @@ public enum Cleaner {
 
         for (index, target) in ordered(targets).enumerated() {
             progress?(index, target)
-            let outcome = await Task.detached { clean(target, mode: mode) }.value
+            let outcome = await offload { clean(target, mode: mode) }
             report.outcomes.append(outcome)
         }
 
@@ -125,14 +137,19 @@ public enum Cleaner {
         return report
     }
 
-    /// Permanently removes items this app moved to the Trash.
-    public static func emptyFromTrash(_ paths: [String]) -> Int {
+    /// Permanently removes items this app moved to the Trash, skipping anything that can't be deleted.
+    public static func emptyFromTrash(_ paths: [String]) -> (removed: Int, freed: Int64, skipped: Int) {
         var removed = 0
+        var freed: Int64 = 0
+        var skipped = 0
         let trash = SystemInfo.trashPath
         for path in paths.map({ ($0 as NSString).standardizingPath }) where path.isInside(trash) && path != trash {
-            if (try? FileManager.default.removeItem(atPath: path)) != nil { removed += 1 }
+            let result = Remover.remove(path)
+            freed += result.freed
+            skipped += result.skipped
+            if result.skipped == 0 { removed += 1 }
         }
-        return removed
+        return (removed, freed, skipped)
     }
 
     /// Cleans folder targets before commands so nested selections are skipped cleanly.
@@ -148,57 +165,79 @@ public enum Cleaner {
     }
 
     private static func clean(_ target: CleanTarget, mode: DeleteMode) -> CleanOutcome {
-        func outcome(_ succeeded: Bool, _ message: String? = nil, trashed: [String] = []) -> CleanOutcome {
-            CleanOutcome(targetID: target.id, title: target.title, path: target.path, bytes: succeeded ? target.bytes : 0,
-                         succeeded: succeeded, message: message, rebuildHint: target.rebuildHint, trashedPaths: trashed)
+        func failed(_ message: String) -> CleanOutcome {
+            CleanOutcome(targetID: target.id, title: target.title, path: target.path, bytes: 0, succeeded: false,
+                         message: message, rebuildHint: target.rebuildHint, trashedPaths: [], freedBytes: 0, trashedBytes: 0, skippedItems: nil)
+        }
+        func done(freed: Int64, trashed: Int64 = 0, paths: [String] = [], skipped: Int = 0, note: String? = nil) -> CleanOutcome {
+            let removedSomething = freed > 0 || trashed > 0 || !paths.isEmpty || skipped == 0
+            var message = note
+            if skipped > 0 {
+                message = "Left \(skipped) read-only or protected \(skipped == 1 ? "item" : "items") in place"
+            }
+            return CleanOutcome(targetID: target.id, title: target.title, path: target.path, bytes: freed + trashed,
+                                succeeded: removedSomething, message: removedSomething ? message : (message ?? "Nothing could be removed"),
+                                rebuildHint: target.rebuildHint, trashedPaths: paths, freedBytes: freed, trashedBytes: trashed, skippedItems: skipped)
         }
 
-        if let reason = target.blockedReason { return outcome(false, reason) }
+        if let reason = target.blockedReason { return failed(reason) }
 
         switch target {
         case .artifact(let artifact, let project):
-            if let problem = recheck(artifact, in: project) { return outcome(false, problem) }
+            if let problem = recheck(artifact, in: project) { return failed(problem) }
             if artifact.kind == .worktree {
-                return removeWorktree(artifact, project: project, outcome: outcome)
+                return removeWorktree(artifact, project: project, failed: failed, done: done)
             }
-            return delete([artifact.path], mode: mode, outcome: outcome)
+            let removal = remove([artifact.path], mode: mode)
+            return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
 
         case .cache(let stored):
-            guard let item = trustedCache(stored) else { return outcome(false, "Unknown cache, skipped for safety") }
-            if let app = item.quitApp, ProcessInspector.processNames().contains(app) { return outcome(false, "Quit \(app) first") }
+            guard let item = trustedCache(stored) else { return failed("Unknown cache, skipped for safety") }
+            if let app = item.quitApp, ProcessInspector.processNames().contains(app) { return failed("Quit \(app) first") }
+            let effectiveMode: DeleteMode = item.id == CacheCatalog.trashID ? .permanent : mode
 
             switch item.effectiveMethod {
             case .command(let tool, let arguments):
-                guard let path = item.toolPath else { return outcome(false, "\(tool) isn't installed") }
+                guard let path = item.toolPath else { return failed("\(tool) isn't installed") }
+                let before = item.paths.isEmpty ? 0 : DirectorySizer.size(of: item.paths).reclaimable
                 let result = Shell.run(path, arguments, timeout: 900)
-                if result.succeeded { return outcome(true) }
-                return outcome(false, firstLine(result.error) ?? firstLine(result.output) ?? "\(tool) failed")
+                guard result.succeeded else {
+                    return failed(firstLine(result.error) ?? firstLine(result.output) ?? "\(tool) failed")
+                }
+                if item.group == .docker {
+                    return done(freed: DockerInspector.reclaimed(in: result.output) ?? 0)
+                }
+                let after = DirectorySizer.size(of: item.paths).reclaimable
+                return done(freed: max(0, before - after))
             case .deleteContents:
                 var children: [String] = []
                 for path in item.paths {
-                    if let problem = unsafeCacheFolder(path) { return outcome(false, problem) }
+                    if let problem = unsafeCacheFolder(path) { return failed(problem) }
                     let names = (try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []
                     children += names.map { path + "/" + $0 }
                 }
-                guard !children.isEmpty else { return outcome(false, "Already empty") }
-                return delete(children, mode: mode, outcome: outcome)
+                guard !children.isEmpty else { return failed("Already empty") }
+                let removal = remove(children, mode: effectiveMode)
+                return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
             case .deletePaths:
                 for path in item.paths {
-                    if let problem = unsafeCacheFolder(path) { return outcome(false, problem) }
+                    if let problem = unsafeCacheFolder(path) { return failed(problem) }
                 }
-                guard !item.paths.isEmpty else { return outcome(false, "Already gone") }
-                return delete(item.paths, mode: mode, outcome: outcome)
+                guard !item.paths.isEmpty else { return failed("Already gone") }
+                let removal = remove(item.paths, mode: effectiveMode)
+                return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
             case nil:
-                return outcome(false, "Tool not installed")
+                return failed("Tool not installed")
             }
 
         case .simulator(let device):
+            let before = FileManager.default.fileExists(atPath: device.path) ? DirectorySizer.size(of: device.path).reclaimable : device.size.reclaimable
             let result = Shell.run("/usr/bin/xcrun", ["simctl", "delete", device.udid], timeout: 120)
-            return result.succeeded ? outcome(true) : outcome(false, firstLine(result.error) ?? "simctl failed")
+            return result.succeeded ? done(freed: before) : failed(firstLine(result.error) ?? "simctl failed")
 
         case .runtime(let runtime):
             let result = Shell.run("/usr/bin/xcrun", ["simctl", "runtime", "delete", runtime.id], timeout: 300)
-            return result.succeeded ? outcome(true) : outcome(false, firstLine(result.error) ?? "simctl failed")
+            return result.succeeded ? done(freed: runtime.sizeBytes) : failed(firstLine(result.error) ?? "simctl failed")
         }
     }
 
@@ -292,38 +331,61 @@ public enum Cleaner {
         return nil
     }
 
-    private static func removeWorktree(_ artifact: Artifact, project: Project, outcome: (Bool, String?, [String]) -> CleanOutcome) -> CleanOutcome {
+    private static func removeWorktree(_ artifact: Artifact, project: Project,
+                                       failed: (String) -> CleanOutcome,
+                                       done: (Int64, Int64, [String], Int, String?) -> CleanOutcome) -> CleanOutcome {
         let git = GitInspector.inspect(project.path, isWorktree: true)
-        if let blocker = Scanner.worktreeBlocker(git, user: nil) { return outcome(false, blocker, []) }
-        guard let main = git.mainRepositoryPath else { return outcome(false, "Couldn't find the main repository", []) }
+        if let blocker = Scanner.worktreeBlocker(git, user: nil) { return failed(blocker) }
+        guard let main = git.mainRepositoryPath else { return failed("Couldn't find the main repository") }
+        let before = DirectorySizer.size(of: artifact.path).reclaimable
         let result = Shell.git(["worktree", "remove", artifact.path], in: main, timeout: 300)
-        if result.succeeded { return outcome(true, nil, []) }
-        return outcome(false, firstLine(result.error) ?? "git worktree remove failed", [])
+        guard result.succeeded else { return failed(firstLine(result.error) ?? "git worktree remove failed") }
+        return done(before, 0, [], 0, nil)
     }
 
-    private static func delete(_ paths: [String], mode: DeleteMode, outcome: (Bool, String?, [String]) -> CleanOutcome) -> CleanOutcome {
-        let fileManager = FileManager.default
-        var trashed: [String] = []
-        var failures: [String] = []
+    struct Removal {
+        var freed: Int64 = 0
+        var trashed: Int64 = 0
+        var skipped = 0
+        var trashedPaths: [String] = []
+    }
 
+    /// Removes each path, measuring what actually went and skipping anything that can't be removed.
+    static func remove(_ paths: [String], mode: DeleteMode) -> Removal {
+        var removal = Removal()
         for path in paths {
-            let url = URL(fileURLWithPath: path)
-            do {
-                if mode == .trash {
-                    var resulting: NSURL?
-                    try fileManager.trashItem(at: url, resultingItemURL: &resulting)
-                    if let resultPath = resulting?.path { trashed.append(resultPath) }
-                } else {
-                    try fileManager.removeItem(at: url)
-                }
-            } catch {
-                failures.append((path as NSString).lastPathComponent)
+            if mode == .trash {
+                trash(path, into: &removal, depth: 0)
+            } else {
+                let result = Remover.remove(path)
+                removal.freed += result.freed
+                removal.skipped += result.skipped
             }
         }
+        return removal
+    }
 
-        if failures.isEmpty { return outcome(true, nil, trashed) }
-        let message = "Couldn't remove \(failures.prefix(3).joined(separator: ", "))\(failures.count > 3 ? " and \(failures.count - 3) more" : "")"
-        return outcome(failures.count < paths.count, message, trashed)
+    /// Moves a path to the Trash; if macOS refuses (read-only folders), tries its children so the rest still goes.
+    private static func trash(_ path: String, into removal: inout Removal, depth: Int) {
+        let size = DirectorySizer.size(of: path).reclaimable
+        var resulting: NSURL?
+        do {
+            try FileManager.default.trashItem(at: URL(fileURLWithPath: path), resultingItemURL: &resulting)
+            removal.trashed += size
+            if let moved = resulting?.path { removal.trashedPaths.append(moved) }
+            return
+        } catch {}
+
+        var st = stat()
+        guard depth < 4, lstat(path, &st) == 0, st.st_mode & S_IFMT == S_IFDIR,
+              let children = try? FileManager.default.contentsOfDirectory(atPath: path), !children.isEmpty
+        else {
+            removal.skipped += 1
+            return
+        }
+        for child in children {
+            trash(path + "/" + child, into: &removal, depth: depth + 1)
+        }
     }
 
     private static func firstLine(_ text: String) -> String? {
