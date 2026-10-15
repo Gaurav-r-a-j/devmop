@@ -246,6 +246,7 @@ final class AppModel {
     }
 
     func clean(mode: DeleteMode) async {
+        if case .running = cleanPhase { return }
         let targets = selectedTargets
         guard !targets.isEmpty else { return }
         cleanPhase = .running(index: 0, total: targets.count, title: targets[0].title)

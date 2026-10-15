@@ -67,6 +67,14 @@ public enum SimulatorInspector {
 }
 
 public enum DockerInspector {
+    /// The only Docker commands DevSweep runs, keyed by item id.
+    static let commands: [String: [String]] = [
+        "docker-build-cache": ["builder", "prune", "-a", "-f"],
+        "docker-images": ["image", "prune", "-a", "-f"],
+        "docker-containers": ["container", "prune", "-f"],
+        "docker-volumes": ["volume", "prune", "-a", "-f"],
+    ]
+
     /// Returns nil when Docker isn't installed, or items plus whether the daemon is running.
     public static func scan() -> (running: Bool, items: [CacheItem])? {
         guard let docker = ToolLocator.find("docker") else { return nil }
@@ -99,16 +107,16 @@ public enum DockerInspector {
         let items = [
             item("Build Cache", id: "docker-build-cache", name: "Build cache", symbol: "hammer.circle",
                  detail: "Layers from past builds. Builds may be slower the first time after.",
-                 tier: .safe, arguments: ["builder", "prune", "-a", "-f"]),
+                 tier: .safe, arguments: commands["docker-build-cache"]!),
             item("Images", id: "docker-images", name: "Unused images", symbol: "square.stack.3d.up",
                  detail: "Images no container uses. Pulled again when needed.",
-                 tier: .rebuildable, arguments: ["image", "prune", "-a", "-f"]),
+                 tier: .rebuildable, arguments: commands["docker-images"]!),
             item("Containers", id: "docker-containers", name: "Stopped containers", symbol: "shippingbox.circle",
                  detail: "Stopped containers and any files written inside them.",
-                 tier: .review, arguments: ["container", "prune", "-f"]),
+                 tier: .review, arguments: commands["docker-containers"]!),
             item("Local Volumes", id: "docker-volumes", name: "Unused volumes", symbol: "externaldrive.badge.xmark",
                  detail: "Volumes no container uses. These often hold database data.",
-                 tier: .review, arguments: ["volume", "prune", "-a", "-f"]),
+                 tier: .review, arguments: commands["docker-volumes"]!),
         ]
         return (true, items.filter { $0.size.reclaimable > 0 })
     }

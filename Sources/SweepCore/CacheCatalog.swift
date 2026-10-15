@@ -21,12 +21,10 @@ public enum CacheCatalog {
                       paths: ["\(caches)/pnpm"], tier: .safe, method: .deleteContents),
             CacheItem(id: "yarn", name: "Yarn cache", group: .packageManagers, symbol: "shippingbox",
                       detail: "Downloaded packages for Yarn 1 and Yarn Berry.",
-                      paths: ["\(caches)/Yarn", "\(home)/.yarn/berry/cache"], tier: .safe,
-                      method: .command(tool: "yarn", arguments: ["cache", "clean"]), fallback: .deleteContents),
+                      paths: ["\(caches)/Yarn", "\(home)/.yarn/berry/cache"], tier: .safe, method: .deleteContents),
             CacheItem(id: "bun", name: "Bun cache", group: .packageManagers, symbol: "shippingbox",
                       detail: "Downloaded packages. Bun fetches them again when needed.",
-                      paths: ["\(home)/.bun/install/cache"], tier: .safe,
-                      method: .command(tool: "bun", arguments: ["pm", "cache", "rm"]), fallback: .deleteContents),
+                      paths: ["\(home)/.bun/install/cache"], tier: .safe, method: .deleteContents),
             CacheItem(id: "homebrew", name: "Homebrew downloads", group: .packageManagers, symbol: "mug",
                       detail: "Old versions and downloaded bottles.",
                       paths: ["\(caches)/Homebrew"], tier: .safe,
@@ -61,8 +59,7 @@ public enum CacheCatalog {
                       paths: ["\(home)/.m2/repository"], tier: .rebuildable, method: .deleteContents),
             CacheItem(id: "pip", name: "pip cache", group: .languages, symbol: "chevron.left.forwardslash.chevron.right",
                       detail: "Downloaded Python wheels.",
-                      paths: ["\(caches)/pip"], tier: .safe,
-                      method: .command(tool: "pip3", arguments: ["cache", "purge"]), fallback: .deleteContents),
+                      paths: ["\(caches)/pip"], tier: .safe, method: .deleteContents),
             CacheItem(id: "uv", name: "uv cache", group: .languages, symbol: "chevron.left.forwardslash.chevron.right",
                       detail: "Downloaded Python packages.",
                       paths: ["\(home)/.cache/uv", "\(caches)/uv"], tier: .safe,
@@ -147,6 +144,16 @@ public enum CacheCatalog {
             }
         }
         return orphans
+    }
+
+    /// The catalog entry for `id` with live paths and tool locations, ignoring anything stored from a past scan.
+    static func trustedItem(id: String) -> CacheItem? {
+        guard var item = definitions().first(where: { $0.id == id }) else { return nil }
+        item.paths = item.paths.filter { FileManager.default.fileExists(atPath: $0) }
+        if case .command(let tool, _) = item.method {
+            item.toolPath = ToolLocator.find(tool)
+        }
+        return item
     }
 
     /// Measures every cache and resolves the tools that clean them.

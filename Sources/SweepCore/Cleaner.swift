@@ -129,7 +129,7 @@ public enum Cleaner {
     public static func emptyFromTrash(_ paths: [String]) -> Int {
         var removed = 0
         let trash = SystemInfo.trashPath
-        for path in paths where path.isInside(trash) {
+        for path in paths.map({ ($0 as NSString).standardizingPath }) where path.isInside(trash) && path != trash {
             if (try? FileManager.default.removeItem(atPath: path)) != nil { removed += 1 }
         }
         return removed
@@ -163,19 +163,30 @@ public enum Cleaner {
             }
             return delete([artifact.path], mode: mode, outcome: outcome)
 
-        case .cache(let item):
+        case .cache(let stored):
+            guard let item = trustedCache(stored) else { return outcome(false, "Unknown cache, skipped for safety") }
+            if let app = item.quitApp, ProcessInspector.processNames().contains(app) { return outcome(false, "Quit \(app) first") }
+
             switch item.effectiveMethod {
-            case .command(_, let arguments):
-                guard let tool = item.toolPath else { return outcome(false, "Tool not found") }
-                let result = Shell.run(tool, arguments, timeout: 900)
+            case .command(let tool, let arguments):
+                guard let path = item.toolPath else { return outcome(false, "\(tool) isn't installed") }
+                let result = Shell.run(path, arguments, timeout: 900)
                 if result.succeeded { return outcome(true) }
-                return outcome(false, firstLine(result.error) ?? "The command failed")
+                return outcome(false, firstLine(result.error) ?? firstLine(result.output) ?? "\(tool) failed")
             case .deleteContents:
-                let children = item.paths.flatMap { path in
-                    ((try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []).map { path + "/" + $0 }
+                var children: [String] = []
+                for path in item.paths {
+                    if let problem = unsafeCacheFolder(path) { return outcome(false, problem) }
+                    let names = (try? FileManager.default.contentsOfDirectory(atPath: path)) ?? []
+                    children += names.map { path + "/" + $0 }
                 }
+                guard !children.isEmpty else { return outcome(false, "Already empty") }
                 return delete(children, mode: mode, outcome: outcome)
             case .deletePaths:
+                for path in item.paths {
+                    if let problem = unsafeCacheFolder(path) { return outcome(false, problem) }
+                }
+                guard !item.paths.isEmpty else { return outcome(false, "Already gone") }
                 return delete(item.paths, mode: mode, outcome: outcome)
             case nil:
                 return outcome(false, "Tool not installed")
@@ -193,18 +204,90 @@ public enum Cleaner {
 
     /// Confirms an artifact is still what the scan found and is safe to remove now.
     static func recheck(_ artifact: Artifact, in project: Project) -> String? {
+        if let problem = unsafeLocation(project.path) ?? unsafeLocation(artifact.path) { return problem }
+        guard artifact.path.isInside(project.path) else { return "Outside its project" }
+
         var st = stat()
         guard lstat(artifact.path, &st) == 0 else { return "Already gone" }
         guard st.st_mode & S_IFMT == S_IFDIR else { return "No longer a folder" }
-        guard artifact.path.isInside(project.path) else { return "Outside its project" }
-        if artifact.kind == .folder {
+
+        if artifact.kind == .worktree {
+            guard artifact.path == project.path else { return "Worktree path doesn't match its project" }
+            var gitStat = stat()
+            guard lstat(project.path + "/.git", &gitStat) == 0, gitStat.st_mode & S_IFMT == S_IFREG else {
+                return "Not a linked worktree"
+            }
+            guard ProjectFinder.gitFileKind(project.path) == .worktree else { return "Not a linked worktree" }
+        } else {
             guard artifact.path != project.path else { return "Refusing to delete a project folder" }
-            guard Rules.artifacts.contains(where: { $0.id == artifact.ruleID && $0.directory == artifact.folderName }) else {
+            guard let rule = Rules.artifacts.first(where: { $0.id == artifact.ruleID }), rule.directory == artifact.folderName else {
                 return "Folder name no longer matches its rule"
             }
+            let parent = (artifact.path as NSString).deletingLastPathComponent
+            let siblings = Set((try? FileManager.default.contentsOfDirectory(atPath: parent)) ?? [])
+            guard rule.matches(siblings: siblings) else { return "Its project file is gone, so it's left alone" }
+            if rule.requiresGitIgnored {
+                let root = gitRoot(containing: parent, within: project.path) ?? project.path
+                guard GitInspector.ignoredPaths([artifact.path], root: root).contains(artifact.path) else {
+                    return "Git no longer ignores this folder"
+                }
+            }
         }
+
         if let user = ProcessInspector.user(of: artifact.path, among: ProcessInspector.runningProcesses()) {
             return "In use by \(user.name)"
+        }
+        return nil
+    }
+
+    /// Paths that must never be deleted, whatever a scan says.
+    static func unsafeLocation(_ path: String) -> String? {
+        let standardized = (path as NSString).standardizingPath
+        let home = NSHomeDirectory()
+        let forbidden: Set<String> = [
+            "/", "/Users", "/System", "/Library", "/Applications", "/private", "/usr", "/bin", "/sbin", "/opt", "/Volumes",
+            home, "\(home)/Library", "\(home)/Documents", "\(home)/Desktop", "\(home)/Downloads",
+            "\(home)/Library/Mobile Documents", "\(home)/Library/CloudStorage",
+        ]
+        if forbidden.contains(standardized) { return "Protected location" }
+        if standardized.isInside("\(home)/Library/Mobile Documents") || standardized.isInside("\(home)/Library/CloudStorage") {
+            return "Cloud-synced folder"
+        }
+        if standardized.isInside("/System") { return "Protected location" }
+        if standardized.split(separator: "/").count < 3 { return "Protected location" }
+        if standardized.split(separator: "/").contains(".git") { return "Inside a .git folder" }
+        return nil
+    }
+
+    /// Checks a cache folder right before emptying it: it must be a real folder inside your home folder.
+    static func unsafeCacheFolder(_ path: String, home: String = NSHomeDirectory()) -> String? {
+        if let problem = unsafeLocation(path) { return problem }
+        guard path.isInside(home), path != home else { return "Outside your home folder" }
+        var st = stat()
+        guard lstat(path, &st) == 0 else { return "Already gone" }
+        if st.st_mode & S_IFMT == S_IFLNK { return "It's a link to another folder, so it's left alone" }
+        guard st.st_mode & S_IFMT == S_IFDIR else { return "Not a folder" }
+        return nil
+    }
+
+    /// Rebuilds a cache item from the built-in catalog so stored scan data never decides what gets deleted or run.
+    static func trustedCache(_ stored: CacheItem) -> CacheItem? {
+        if stored.group == .docker {
+            guard let arguments = DockerInspector.commands[stored.id], let docker = ToolLocator.find("docker") else { return nil }
+            return CacheItem(id: stored.id, name: stored.name, group: .docker, symbol: stored.symbol, detail: stored.detail,
+                             paths: [], tier: stored.tier, method: .command(tool: "docker", arguments: arguments),
+                             size: stored.size, toolPath: docker)
+        }
+        return CacheCatalog.trustedItem(id: stored.id)
+    }
+
+    private static func gitRoot(containing directory: String, within project: String) -> String? {
+        var current = directory
+        while current.isInside(project) {
+            if FileManager.default.fileExists(atPath: current + "/.git") { return current }
+            let parent = (current as NSString).deletingLastPathComponent
+            if parent == current { break }
+            current = parent
         }
         return nil
     }

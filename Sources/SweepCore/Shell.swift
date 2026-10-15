@@ -15,7 +15,7 @@ public enum Shell {
         let process = Process()
         process.executableURL = URL(fileURLWithPath: executable)
         process.arguments = arguments
-        if let directory { process.currentDirectoryURL = URL(fileURLWithPath: directory) }
+        process.currentDirectoryURL = URL(fileURLWithPath: directory ?? neutralDirectory)
 
         var environment = ProcessInfo.processInfo.environment
         let toolDirectory = (executable as NSString).deletingLastPathComponent
@@ -23,6 +23,12 @@ public enum Shell {
         environment["GIT_TERMINAL_PROMPT"] = "0"
         environment["GIT_OPTIONAL_LOCKS"] = "0"
         environment["CI"] = "1"
+        environment["HOMEBREW_NO_AUTO_UPDATE"] = "1"
+        environment["HOMEBREW_NO_INSTALL_CLEANUP"] = "1"
+        environment["HOMEBREW_NO_ENV_HINTS"] = "1"
+        environment["NPM_CONFIG_UPDATE_NOTIFIER"] = "false"
+        environment["COREPACK_ENABLE_DOWNLOAD_PROMPT"] = "0"
+        environment["DOCKER_CLI_HINTS"] = "false"
         process.environment = environment
 
         let outPipe = Pipe()
@@ -60,6 +66,13 @@ public enum Shell {
             timedOut: timedOut
         )
     }
+
+    /// An empty folder tools run in, so none of them picks up a project's config.
+    public static let neutralDirectory: String = {
+        let path = (NSTemporaryDirectory() as NSString).appendingPathComponent("DevSweep-run")
+        try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
+        return path
+    }()
 
     public static func git(_ arguments: [String], in directory: String, timeout: TimeInterval = 20, stdin: URL? = nil) -> ShellResult {
         run("/usr/bin/git", ["-C", directory] + arguments, timeout: timeout, stdin: stdin)

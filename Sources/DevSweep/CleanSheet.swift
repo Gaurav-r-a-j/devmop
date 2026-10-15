@@ -162,15 +162,20 @@ struct CleanSheet: View {
 
     private func done(_ report: CleanReport) -> some View {
         VStack(spacing: 20) {
-            Image(systemName: report.failures.isEmpty ? "checkmark.circle.fill" : "exclamationmark.circle.fill")
+            let cleanedAny = report.outcomes.contains(where: \.succeeded)
+            Image(systemName: report.failures.isEmpty ? "checkmark.circle.fill" : cleanedAny ? "exclamationmark.circle.fill" : "xmark.circle.fill")
                 .font(.system(size: 56))
-                .foregroundStyle(report.failures.isEmpty ? .green : .orange)
+                .foregroundStyle(report.failures.isEmpty ? .green : cleanedAny ? .orange : .red)
                 .symbolEffect(.bounce, value: report.date)
 
             VStack(spacing: 6) {
-                Text("Cleaned \(formatBytes(report.cleanedBytes))")
+                Text(cleanedAny ? "Cleaned \(formatBytes(report.cleanedBytes))" : "Nothing was cleaned")
                     .font(.title.weight(.semibold))
                     .monospacedDigit()
+                if !cleanedAny {
+                    Text("Nothing was deleted. The reasons are below.")
+                        .foregroundStyle(.secondary)
+                }
                 if report.diskFreedBytes > 0 {
                     Text("Your disk has \(formatBytes(report.diskFreedBytes)) more free space.")
                         .foregroundStyle(.secondary)
