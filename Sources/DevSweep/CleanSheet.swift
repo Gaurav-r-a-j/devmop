@@ -6,6 +6,7 @@ struct CleanSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var mode: DeleteMode = .trash
     @State private var emptiedTrash = false
+    @State private var isEmptyingTrash = false
 
     var body: some View {
         Group {
@@ -180,10 +181,24 @@ struct CleanSheet: View {
                 VStack(spacing: 10) {
                     Text("\(formatBytes(report.trashedBytes)) is in the Trash and still uses space.")
                         .foregroundStyle(.secondary)
-                    Button("Delete These Items from Trash") {
-                        model.emptyFromTrash(report)
-                        emptiedTrash = true
+                    Button {
+                        isEmptyingTrash = true
+                        Task {
+                            await model.emptyFromTrash(report)
+                            isEmptyingTrash = false
+                            emptiedTrash = true
+                        }
+                    } label: {
+                        if isEmptyingTrash {
+                            HStack(spacing: 8) {
+                                ProgressView().controlSize(.small)
+                                Text("Deleting…")
+                            }
+                        } else {
+                            Text("Delete These Items from Trash")
+                        }
                     }
+                    .disabled(isEmptyingTrash)
                     Text("Only the items DevSweep just moved are removed. Everything else in your Trash stays.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)

@@ -51,6 +51,9 @@ final class AppModel {
     private(set) var history: [CleanReport] = History.load()
     private(set) var targets: [String: CleanTarget] = [:]
 
+    private var dataVersion = 0
+    private var rescanRequested = false
+
     var selection: Set<String> = []
     var focusedProject: Project.ID?
     var cleanPhase: CleanPhase?
@@ -89,10 +92,14 @@ final class AppModel {
     }
 
     func scan() async {
-        guard !isScanning else { return }
+        guard !isScanning else {
+            rescanRequested = true
+            return
+        }
         isScanning = true
         scanMessage = "Starting scan…"
         scanFraction = nil
+        let startVersion = dataVersion
         let scanner = Scanner(settings: settings)
         let fresh = await scanner.scan { progress in
             Task { @MainActor [weak self] in
@@ -101,14 +108,27 @@ final class AppModel {
                 self.scanFraction = progress.fraction
             }
         }
-        result = fresh
-        selection = selection.filter { targets[$0] != nil && targets[$0]?.blockedReason == nil }
-        if let focusedProject, !fresh.projects.contains(where: { $0.id == focusedProject }) {
-            self.focusedProject = nil
-        }
         isScanning = false
         scanMessage = ""
-        let snapshot = fresh
+
+        // A clean finished while scanning, so these results may list deleted items.
+        if startVersion != dataVersion { rescanRequested = true }
+        if !rescanRequested {
+            result = fresh
+            selection = selection.filter { targets[$0] != nil && targets[$0]?.blockedReason == nil }
+            if let focusedProject, !fresh.projects.contains(where: { $0.id == focusedProject }) {
+                self.focusedProject = nil
+            }
+            saveCache()
+        }
+        if rescanRequested {
+            rescanRequested = false
+            await scan()
+        }
+    }
+
+    private func saveCache() {
+        guard let snapshot = result else { return }
         Task.detached(priority: .utility) { ScanCache.save(snapshot) }
     }
 
@@ -232,17 +252,73 @@ final class AppModel {
         let total = targets.count
         let report = await Cleaner.clean(targets, mode: mode) { index, target in
             Task { @MainActor [weak self] in
-                self?.cleanPhase = .running(index: index, total: total, title: target.title)
+                guard let self, case .running(let shown, _, _) = self.cleanPhase, index >= shown else { return }
+                self.cleanPhase = .running(index: index, total: total, title: target.title)
             }
         }
-        cleanPhase = .done(report)
         selection.removeAll()
+        applyCleaned(report)
+        cleanPhase = .done(report)
         history = History.load()
-        await scan()
+        await refreshAfterClean(report)
+        Task { await scan() }
     }
 
-    func emptyFromTrash(_ report: CleanReport) {
-        _ = Cleaner.emptyFromTrash(report.trashedPaths)
+    /// Removes cleaned items from the current results right away.
+    private func applyCleaned(_ report: CleanReport) {
+        dataVersion += 1
+        guard var updated = result else { return }
+        let cleaned = Set(report.outcomes.filter(\.succeeded).map(\.targetID))
+
+        updated.projects = updated.projects.compactMap { project in
+            if let worktree = project.worktreeArtifact, cleaned.contains(id(for: worktree)) { return nil }
+            var project = project
+            project.artifacts.removeAll { cleaned.contains(id(for: $0)) }
+            return project.artifacts.isEmpty ? nil : project
+        }
+        for index in updated.caches.indices where cleaned.contains(id(for: updated.caches[index])) {
+            updated.caches[index].size = .zero
+        }
+        updated.caches.removeAll { $0.group == .docker && cleaned.contains(id(for: $0)) }
+        updated.simulators.removeAll { cleaned.contains(id(for: $0)) }
+        updated.runtimes.removeAll { cleaned.contains(id(for: $0)) }
+        updated.disk = SystemInfo.disk() ?? updated.disk
+
+        result = updated
+        if let focusedProject, !updated.projects.contains(where: { $0.id == focusedProject }) {
+            self.focusedProject = nil
+        }
+        saveCache()
+    }
+
+    /// Re-measures cleaned caches and the Trash, since tools like pnpm store prune free only part of a cache.
+    private func refreshAfterClean(_ report: CleanReport) async {
+        guard let current = result else { return }
+        let cleaned = Set(report.outcomes.filter(\.succeeded).map(\.targetID))
+        let items = current.caches.filter { $0.group != .docker && cleaned.contains(id(for: $0)) }
+        let paths = items.flatMap(\.paths) + [SystemInfo.trashPath]
+        let sizes = await DirectorySizer.sizes(of: paths)
+
+        guard var updated = result else { return }
+        for index in updated.caches.indices where items.contains(where: { $0.id == updated.caches[index].id }) {
+            updated.caches[index].size = updated.caches[index].paths.compactMap { sizes[$0] }.reduce(.zero, +)
+        }
+        updated.caches.removeAll { $0.size.allocated == 0 }
+        updated.trashSize = sizes[SystemInfo.trashPath]?.allocated ?? updated.trashSize
+        updated.disk = SystemInfo.disk() ?? updated.disk
+        result = updated
+        saveCache()
+    }
+
+    func emptyFromTrash(_ report: CleanReport) async {
+        let paths = report.trashedPaths
+        await Task.detached(priority: .userInitiated) { _ = Cleaner.emptyFromTrash(paths) }.value
+        let trash = await DirectorySizer.sizes(of: [SystemInfo.trashPath])
+        guard var updated = result else { return }
+        updated.disk = SystemInfo.disk() ?? updated.disk
+        updated.trashSize = trash[SystemInfo.trashPath]?.allocated ?? updated.trashSize
+        result = updated
+        saveCache()
     }
 
     // MARK: Helpers
