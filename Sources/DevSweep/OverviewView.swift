@@ -72,9 +72,7 @@ struct OverviewView: View {
     }
 
     private func action(for item: BreakdownItem) -> (() -> Void)? {
-        if let section = item.section { return { model.section = section } }
-        if let path = item.revealPath { return { NSWorkspace.shared.open(URL(fileURLWithPath: path)) } }
-        return nil
+        { model.detailItemID = item.id }
     }
 
     private func hero(_ result: ScanResult) -> some View {

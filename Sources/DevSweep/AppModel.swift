@@ -4,9 +4,9 @@ import Observation
 import SweepCore
 
 enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
-    case overview, projects, caches, simulators, storageMap, systemData, files, apps, trash, history
+    case overview, projects, caches, simulators, processes, storageMap, systemData, files, apps, trash, history
 
-    static let developer: [SidebarSection] = [.projects, .caches, .simulators]
+    static let developer: [SidebarSection] = [.projects, .caches, .simulators, .processes]
     static let mac: [SidebarSection] = [.storageMap, .systemData, .files, .apps]
     static let general: [SidebarSection] = [.trash, .history]
 
@@ -18,6 +18,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "Projects"
         case .caches: "Caches"
         case .simulators: "Simulators"
+        case .processes: "Processes & Ports"
         case .storageMap: "Storage Map"
         case .systemData: "System Data"
         case .files: "Files"
@@ -33,6 +34,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "folder"
         case .caches: "archivebox"
         case .simulators: "iphone.gen3"
+        case .processes: "bolt.horizontal.circle"
         case .storageMap: "chart.bar.doc.horizontal"
         case .systemData: "internaldrive"
         case .files: "doc.on.doc"
@@ -77,10 +79,14 @@ final class AppModel {
     private var dataVersion = 0
     private var rescanRequested = false
 
+    private(set) var devProcesses: [DevProcess] = []
+    private(set) var isRefreshingProcesses = false
     private(set) var trashEntries: [TrashEntry]?
     private(set) var isLoadingTrash = false
 
     var selection: Set<String> = []
+    /// The breakdown slice whose details are open.
+    var detailItemID: String?
     var focusedProject: Project.ID?
     var cleanPhase: CleanPhase?
 
@@ -113,8 +119,49 @@ final class AppModel {
         }
     }
 
+    // MARK: Processes
+
+    /// Re-reads running processes and updates which projects are in use, so stale "in use" labels clear on their own.
+    func refreshProcesses() async {
+        guard !isRefreshingProcesses else { return }
+        isRefreshingProcesses = true
+        let context = await Task.detached(priority: .utility) { ProcessContext.current() }.value
+        devProcesses = context.devProcesses
+        isRefreshingProcesses = false
+
+        guard var updated = result else { return }
+        var changed = false
+        for index in updated.projects.indices {
+            let usage = context.blocker(for: updated.projects[index].path)
+            if updated.projects[index].runningProcess != usage?.label {
+                updated.projects[index].runningProcess = usage?.label
+                changed = true
+            }
+            for artifactIndex in updated.projects[index].artifacts.indices {
+                let current = updated.projects[index].artifacts[artifactIndex].blockedReason
+                guard current == nil || current?.hasPrefix("In use by") == true else { continue }
+                if current != usage?.reason {
+                    updated.projects[index].artifacts[artifactIndex].blockedReason = usage?.reason
+                    changed = true
+                }
+            }
+        }
+        if changed {
+            result = updated
+            selection = selection.filter(isSelectable)
+        }
+    }
+
+    /// Stops processes (and their children), then refreshes.
+    func stop(_ processes: [DevProcess], force: Bool) async -> DevProcesses.StopResult {
+        let outcome = await Task.detached(priority: .userInitiated) { DevProcesses.stop(processes, force: force) }.value
+        await refreshProcesses()
+        return outcome
+    }
+
     /// Re-checks Full Disk Access live; when it was just granted, rescans so Library folders get measured.
     func refreshFullDiskAccess() {
+        Task { await refreshProcesses() }
         let granted = SystemInfo.hasFullDiskAccess()
         let newlyGranted = granted && !hasFullDiskAccess
         hasFullDiskAccess = granted

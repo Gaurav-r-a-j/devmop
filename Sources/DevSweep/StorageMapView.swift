@@ -88,6 +88,7 @@ struct AreaRow: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                 HStack(spacing: 10) {
+                    Button("Details") { model.detailItemID = item.id }
                     if let section = item.section {
                         Button(item.actionTitle ?? "Open \(section.title)") { model.section = section }
                     }

@@ -454,8 +454,8 @@ public enum Cleaner {
             }
         }
 
-        if let user = ProcessInspector.user(of: project.path, among: ProcessInspector.runningProcesses()) {
-            return "In use by \(user.name)"
+        if let usage = ProcessContext.current().blocker(for: project.path) {
+            return usage.reason
         }
         return nil
     }

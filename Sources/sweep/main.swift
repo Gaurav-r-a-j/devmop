@@ -20,6 +20,7 @@ func usage() -> Never {
     USAGE
       sweep scan  [--root PATH]... [--inactive DAYS] [--limit N] [--json]
       sweep clean [--root PATH]... [--inactive DAYS] [--tier safe|rebuildable] [--caches] [--permanent] [--yes]
+      sweep ps    list running dev servers, MCP servers, model servers and leftovers
 
     clean only prints the plan unless --yes is given. Items go to the Trash unless --permanent is given.
     """)
@@ -50,7 +51,7 @@ func parse() -> Options {
             exit(2)
         }
     }
-    if !["scan", "clean"].contains(options.command) { usage() }
+    if !["scan", "clean", "ps"].contains(options.command) { usage() }
     return options
 }
 
@@ -156,8 +157,25 @@ func printReport(_ result: ScanResult, options: Options) {
     if !result.hasFullDiskAccess { print("\n\(dim)Full Disk Access is off for this terminal; some Library folders may be skipped.\(reset)") }
 }
 
+func printProcesses() {
+    let dim = "\u{1B}[2m", reset = "\u{1B}[0m"
+    for process in DevProcesses.snapshot() {
+        var flags: [String] = [process.kind.title]
+        if !process.ports.isEmpty { flags.append(process.ports.map { ":\($0)" }.joined(separator: " ")) }
+        if process.isLeftover { flags.append("leftover") }
+        if process.copies > 1 { flags.append("\(process.copies) copies") }
+        if let owner = process.ownerApp { flags.append("from \(owner)") }
+        print("\(rpad(String(process.pid), 6))  \(pad(process.displayName, 38)) \(rpad(bytes(process.memoryBytes), 9))  \(flags.joined(separator: " · "))")
+        if let cwd = process.workingDirectory { print("        \(dim)\(cwd.abbreviatingHome)\(reset)") }
+    }
+}
+
 func run() async {
     let options = parse()
+    if options.command == "ps" {
+        printProcesses()
+        return
+    }
     var settings = SweepSettings(inactiveDays: options.inactiveDays, deleteMode: options.permanent ? .permanent : .trash)
     if !options.roots.isEmpty { settings.roots = options.roots }
 

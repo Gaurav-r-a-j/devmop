@@ -174,6 +174,13 @@ struct BreakdownItem: Identifiable {
         Color(red: red / 255, green: green / 255, blue: blue / 255)
     }
 
+    /// Rule IDs behind a project breakdown slice; empty means "every rule not listed elsewhere".
+    static func projectRules(for id: String) -> Set<String>? {
+        projectKinds.first { $0.id == id }?.rules
+    }
+
+    static var assignedProjectRules: Set<String> { projectKinds.reduce(into: Set<String>()) { $0.formUnion($1.rules) } }
+
     private static let projectKinds: [(id: String, title: String, color: Color, rules: Set<String>)] = [
         ("node-modules", "node_modules", rgb(0, 122, 255), ["node-modules"]),
         ("framework-builds", "Framework builds (.next, dist…)", rgb(64, 156, 255),

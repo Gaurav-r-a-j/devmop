@@ -74,6 +74,7 @@ struct ContentView: View {
                     case .files: FilesView()
                     case .apps: AppsView()
                     case .simulators: SimulatorsView()
+                    case .processes: ProcessesView()
                     case .trash: TrashView()
                     case .history: HistoryView()
                     }
@@ -111,6 +112,15 @@ struct ContentView: View {
         )) {
             WelcomeView()
                 .environment(model)
+        }
+        .sheet(isPresented: Binding(
+            get: { model.detailItemID != nil && model.cleanPhase == nil },
+            set: { if !$0 { model.detailItemID = nil } }
+        )) {
+            if let item = model.breakdown.first(where: { $0.id == model.detailItemID }) {
+                AreaDetailView(item: item)
+                    .environment(model)
+            }
         }
         .sheet(isPresented: Binding(
             get: { model.cleanPhase != nil },
@@ -171,6 +181,9 @@ struct SidebarView: View {
         case .simulators: bytes = result.simulatorBytes
         case .trash: bytes = result.trashBytes
         case .systemData: bytes = result.systemBytes
+        case .processes:
+            let leftovers = model.devProcesses.filter { $0.isLeftover || $0.copies > 1 }.count
+            return leftovers > 0 ? Text("\(leftovers) leftover") : nil
         case .files, .apps, .storageMap: return nil
         case .overview, .history: return nil
         }
@@ -288,6 +301,35 @@ struct MenuBarView: View {
                 }
             }
 
+            let servers = model.devProcesses.filter { !$0.ports.isEmpty && $0.kind != .editorHelper }
+            let leftovers = model.devProcesses.filter { $0.isLeftover || $0.copies > 1 }.count
+            if !servers.isEmpty || leftovers > 0 {
+                Divider()
+                VStack(alignment: .leading, spacing: 6) {
+                    Text("Running dev servers").font(.caption.weight(.semibold)).foregroundStyle(.secondary)
+                    ForEach(servers.prefix(6)) { process in
+                        HStack {
+                            Text(process.ports.map { ":\($0)" }.joined(separator: " "))
+                                .font(.caption.monospacedDigit())
+                                .frame(width: 70, alignment: .leading)
+                            Text(process.displayName).font(.caption).lineLimit(1).truncationMode(.middle)
+                            Spacer()
+                            Button("Stop") { Task { _ = await model.stop([process], force: false) } }
+                                .controlSize(.small)
+                        }
+                    }
+                    if leftovers > 0 {
+                        Button("\(leftovers) leftover \(leftovers == 1 ? "process" : "processes") — review…") {
+                            model.section = .processes
+                            openWindow(id: "main")
+                            NSApp.activate(ignoringOtherApps: true)
+                        }
+                        .buttonStyle(.link)
+                        .font(.caption)
+                    }
+                }
+            }
+
             Divider()
 
             HStack {
@@ -311,6 +353,7 @@ struct MenuBarView: View {
                 .font(.caption)
         }
         .padding(16)
-        .frame(width: 300)
+        .frame(width: 320)
+        .task { await model.refreshProcesses() }
     }
 }

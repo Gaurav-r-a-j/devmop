@@ -64,7 +64,7 @@ public struct Scanner: Sendable {
             _ = count
         }
         let drafts = await offload { finder.find() }
-        let processes = ProcessInspector.runningProcesses()
+        let context = await offload { ProcessContext.current() }
 
         progress?(ScanProgress(phase: .checkingGit, message: "Checking git status of \(drafts.count) projects", fraction: nil))
         let (filtered, gitStates) = await offload {
@@ -94,15 +94,16 @@ public struct Scanner: Sendable {
         var projects: [Project] = []
         for draft in filtered {
             let git = gitStates[draft.path]
-            let user = ProcessInspector.user(of: draft.path, among: processes)
-            let shell = ProcessInspector.shell(in: draft.path, among: processes)
+            let usage = context.blocker(for: draft.path)
+            let user = usage?.process
+            let shell = context.shell(in: draft.path)
             var project = Project(
                 path: draft.path,
                 name: (draft.path as NSString).lastPathComponent,
                 ecosystems: draft.ecosystems,
                 lastModified: draft.newestModified > 0 ? Date(timeIntervalSince1970: draft.newestModified) : nil,
                 git: git,
-                runningProcess: user?.name,
+                runningProcess: usage?.label,
                 hasLockfile: draft.hasLockfile
             )
 
@@ -115,8 +116,8 @@ public struct Scanner: Sendable {
                     rebuildHint: candidate.rule.rebuildHint,
                     size: sizes[candidate.path] ?? .zero
                 )
-                if let user = ProcessInspector.user(of: candidate.path, among: processes) ?? user {
-                    artifact.blockedReason = "In use by \(user.name)"
+                if let usage {
+                    artifact.blockedReason = usage.reason
                 }
                 artifact.warning = Self.warning(for: artifact, in: project)
                     ?? shell.map { "A terminal (\($0.name)) is open in this project." }

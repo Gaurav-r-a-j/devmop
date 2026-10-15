@@ -167,6 +167,13 @@ struct ProjectInspector: View {
             ScrollView {
                 VStack(alignment: .leading, spacing: 20) {
                     header(project)
+                    if let reason = project.artifacts.lazy.compactMap(\.blockedReason).first(where: { $0.hasPrefix("In use by") }) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            ReasonLabel(text: reason)
+                            Button("Show in Processes") { model.section = .processes }
+                                .controlSize(.small)
+                        }
+                    }
                     facts(project)
                     folders(project)
                     if let worktree = project.worktreeArtifact {
