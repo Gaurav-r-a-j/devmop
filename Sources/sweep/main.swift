@@ -134,6 +134,16 @@ func printReport(_ result: ScanResult, options: Options) {
         }
     }
 
+    if let apps = result.apps, !apps.isEmpty {
+        print("\n\(bold)APPS\(reset)  \(dim)\(apps.count) installed, \(result.orphans?.count ?? 0) with leftovers from deleted apps\(reset)")
+        for app in apps.prefix(8) {
+            print("\(pad(app.name, 34))\(rpad(bytes(app.totalReclaimable), 10))  \(dim)\(app.leftovers.count) leftovers, last used \(relative(app.lastUsed))\(reset)")
+        }
+        for orphan in (result.orphans ?? []).prefix(5) {
+            print("\(pad("leftover: " + orphan.bundleID, 34))\(rpad(bytes(orphan.reclaimable), 10))")
+        }
+    }
+
     if result.dockerRunning == false { print("\n\(dim)Docker is installed but not running.\(reset)") }
     if result.hasLocalSnapshots { print("\n\(dim)Time Machine local snapshots exist; macOS frees deleted space gradually.\(reset)") }
     if !result.hasFullDiskAccess { print("\n\(dim)Full Disk Access is off for this terminal; some Library folders may be skipped.\(reset)") }

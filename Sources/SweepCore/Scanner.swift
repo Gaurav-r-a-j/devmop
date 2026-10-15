@@ -23,6 +23,7 @@ public struct Scanner: Sendable {
         }
         async let snapshots = offload { SystemInfo.hasLocalSnapshots() }
         async let files = offload { UserFiles.scan() }
+        async let inventory = AppInventory.scan(reuse: reuse)
 
         let dockerResult = await docker
         let (projectList, measuredCount) = await projects
@@ -40,6 +41,9 @@ public struct Scanner: Sendable {
             hasFullDiskAccess: SystemInfo.hasFullDiskAccess()
         )
         result.files = await files
+        let (apps, orphans) = await inventory
+        result.apps = apps
+        result.orphans = orphans
         result.journal = mark
         result.measuredCount = measuredCount
         result.duration = Date().timeIntervalSince(started)
@@ -220,6 +224,13 @@ struct SizeReuse: Sendable {
         var sizes: [String: SizeInfo] = [:]
         for project in previous.projects {
             for artifact in project.artifacts { sizes[artifact.path] = artifact.size }
+        }
+        for app in previous.apps ?? [] {
+            sizes[app.path] = app.size
+            for leftover in app.leftovers { sizes[leftover.path] = leftover.size }
+        }
+        for orphan in previous.orphans ?? [] {
+            for leftover in orphan.leftovers { sizes[leftover.path] = leftover.size }
         }
         self.sizes = sizes
         self.changes = ChangeJournal.ChangeSet(changed)

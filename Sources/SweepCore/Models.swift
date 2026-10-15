@@ -398,6 +398,8 @@ public struct ScanResult: Codable, Sendable {
     public var measuredCount: Int?
     /// Large, old, leftover and duplicate files in your own folders. Not counted as reclaimable waste.
     public var files: [UserFile]?
+    public var apps: [InstalledApp]?
+    public var orphans: [OrphanedAppData]?
 
     public init(date: Date = Date(), duration: TimeInterval = 0, roots: [String] = [], projects: [Project] = [], caches: [CacheItem] = [], simulators: [SimulatorDevice] = [], runtimes: [SimulatorRuntime] = [], dockerRunning: Bool? = nil, disk: DiskUsage? = nil, trashSize: Int64 = 0, hasLocalSnapshots: Bool = false, hasFullDiskAccess: Bool = true) {
         self.date = date

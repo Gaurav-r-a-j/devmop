@@ -4,10 +4,10 @@ import Observation
 import SweepCore
 
 enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
-    case overview, projects, caches, simulators, systemData, files, trash, history
+    case overview, projects, caches, simulators, systemData, files, apps, trash, history
 
     static let developer: [SidebarSection] = [.projects, .caches, .simulators]
-    static let mac: [SidebarSection] = [.systemData, .files]
+    static let mac: [SidebarSection] = [.systemData, .files, .apps]
     static let general: [SidebarSection] = [.trash, .history]
 
     var id: String { rawValue }
@@ -20,6 +20,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .simulators: "Simulators"
         case .systemData: "System Data"
         case .files: "Files"
+        case .apps: "Apps"
         case .trash: "Trash"
         case .history: "History"
         }
@@ -33,6 +34,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .simulators: "iphone.gen3"
         case .systemData: "internaldrive"
         case .files: "doc.on.doc"
+        case .apps: "square.grid.2x2"
         case .trash: "trash"
         case .history: "clock.arrow.circlepath"
         }
@@ -192,6 +194,13 @@ final class AppModel {
             let target = CleanTarget.file(file)
             map[target.id] = target
         }
+        for app in result.apps ?? [] {
+            for target in [CleanTarget.app(app), .appData(app)] { map[target.id] = target }
+        }
+        for orphan in result.orphans ?? [] {
+            let target = CleanTarget.orphan(orphan)
+            map[target.id] = target
+        }
         targets = map
     }
 
@@ -200,6 +209,9 @@ final class AppModel {
     func id(for device: SimulatorDevice) -> String { "simulator:\(device.udid)" }
     func id(for runtime: SimulatorRuntime) -> String { "runtime:\(runtime.id)" }
     func id(for file: UserFile) -> String { "file:\(file.path)" }
+    func uninstallID(for app: InstalledApp) -> String { "app:\(app.bundleID)" }
+    func dataID(for app: InstalledApp) -> String { "appdata:\(app.bundleID)" }
+    func id(for orphan: OrphanedAppData) -> String { "orphan:\(orphan.bundleID)" }
 
     func isSelectable(_ id: String) -> Bool {
         guard let target = targets[id] else { return false }
@@ -317,6 +329,16 @@ final class AppModel {
         updated.caches.removeAll { $0.group == .docker && cleaned.contains(id(for: $0)) }
         updated.simulators.removeAll { cleaned.contains(id(for: $0)) }
         updated.files?.removeAll { cleaned.contains(id(for: $0)) }
+        updated.apps?.removeAll { cleaned.contains(uninstallID(for: $0)) }
+        if let apps = updated.apps {
+            updated.apps = apps.map { app in
+                guard cleaned.contains(dataID(for: app)) else { return app }
+                var app = app
+                app.leftovers.removeAll(where: \.mayHoldUserData)
+                return app
+            }
+        }
+        updated.orphans?.removeAll { cleaned.contains(id(for: $0)) }
         updated.runtimes.removeAll { cleaned.contains(id(for: $0)) }
         updated.disk = SystemInfo.disk() ?? updated.disk
 

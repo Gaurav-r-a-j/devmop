@@ -111,8 +111,13 @@ struct CleanSheet: View {
         var text = mode == .trash
             ? "Folders go to the Trash so you can put them back. They keep using space until the Trash is emptied."
             : "Folders are deleted right away and can't be restored."
-        if model.selectedTargets.contains(where: { if case .file = $0 { return true }; return false }) {
-            text += " Your own files always go to the Trash, whichever option you pick."
+        if model.selectedTargets.contains(where: {
+            switch $0 {
+            case .file, .app, .appData, .orphan: return true
+            default: return false
+            }
+        }) {
+            text += " Your own files and apps always go to the Trash, whichever option you pick."
         }
         if model.selectedTargets.contains(where: { $0.id == "cache:\(CacheCatalog.trashID)" }) {
             text += " The Trash itself is always emptied permanently."
@@ -133,12 +138,14 @@ struct CleanSheet: View {
         var caches: [CleanTarget] = []
         var simulators: [CleanTarget] = []
         var files: [CleanTarget] = []
+        var apps: [CleanTarget] = []
         for target in targets {
             switch target {
             case .artifact: projects.append(target)
             case .cache: caches.append(target)
             case .simulator, .runtime: simulators.append(target)
             case .file: files.append(target)
+            case .app, .appData, .orphan: apps.append(target)
             }
         }
         return [
@@ -146,6 +153,7 @@ struct CleanSheet: View {
             TargetGroup(title: "Caches", targets: caches),
             TargetGroup(title: "Simulators", targets: simulators),
             TargetGroup(title: "Your files", targets: files),
+            TargetGroup(title: "Apps", targets: apps),
         ].filter { !$0.targets.isEmpty }
     }
 

@@ -7,6 +7,9 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
     case simulator(SimulatorDevice)
     case runtime(SimulatorRuntime)
     case file(UserFile)
+    case app(InstalledApp)
+    case appData(InstalledApp)
+    case orphan(OrphanedAppData)
 
     public var id: String {
         switch self {
@@ -15,6 +18,9 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .simulator(let device): "simulator:\(device.udid)"
         case .runtime(let runtime): "runtime:\(runtime.id)"
         case .file(let file): "file:\(file.path)"
+        case .app(let app): "app:\(app.bundleID)"
+        case .appData(let app): "appdata:\(app.bundleID)"
+        case .orphan(let orphan): "orphan:\(orphan.bundleID)"
         }
     }
 
@@ -26,6 +32,9 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .simulator(let device): "\(device.name) (\(device.runtime))"
         case .runtime(let runtime): "\(runtime.name) runtime"
         case .file(let file): file.name
+        case .app(let app): "Uninstall \(app.name)"
+        case .appData(let app): "\(app.name) app data"
+        case .orphan(let orphan): "Leftovers of \(orphan.name)"
         }
     }
 
@@ -36,6 +45,9 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .simulator(let device): device.size.reclaimable
         case .runtime(let runtime): runtime.sizeBytes
         case .file(let file): file.reclaimable
+        case .app(let app): app.uninstallBytes
+        case .appData(let app): app.dataBytes
+        case .orphan(let orphan): orphan.reclaimable
         }
     }
 
@@ -44,7 +56,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .artifact(let artifact, _): artifact.tier
         case .cache(let item): item.tier
         case .simulator, .runtime: .rebuildable
-        case .file: .review
+        case .file, .app, .appData, .orphan: .review
         }
     }
 
@@ -55,6 +67,8 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .simulator(let device): device.path
         case .runtime: nil
         case .file(let file): file.path
+        case .app(let app), .appData(let app): app.path
+        case .orphan(let orphan): orphan.leftovers.first?.path
         }
     }
 
@@ -64,7 +78,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache: nil
         case .simulator: "Create it again in Xcode › Devices and Simulators"
         case .runtime: "Download it again in Xcode › Settings › Components"
-        case .file: "Put it back from the Trash if you need it"
+        case .file, .app, .appData, .orphan: "Put it back from the Trash if you need it"
         }
     }
 
@@ -74,13 +88,17 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache(let item): item.blockedReason
         case .simulator(let device): device.isBooted ? "Running. Shut it down first." : nil
         case .runtime(let runtime): runtime.isDeletable ? nil : "macOS manages this runtime"
-        case .file: nil
+        case .file, .orphan: nil
+        case .app(let app), .appData(let app): app.blockedReason
         }
     }
 
     /// Whether deletion goes through the Trash (commands always delete directly).
     public func usesTrash(_ mode: DeleteMode) -> Bool {
-        if case .file = self { return true }
+        switch self {
+        case .file, .app, .appData, .orphan: return true
+        default: break
+        }
         guard mode == .trash else { return false }
         switch self {
         case .artifact(let artifact, _): return artifact.kind == .folder
@@ -89,7 +107,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
             if case .command = item.effectiveMethod { return false }
             return true
         case .simulator, .runtime: return false
-        case .file: return true
+        case .file, .app, .appData, .orphan: return true
         }
     }
 }
@@ -279,6 +297,32 @@ public enum Cleaner {
             let result = Shell.run("/usr/bin/xcrun", ["simctl", "runtime", "delete", runtime.id], timeout: 300)
             return result.succeeded ? done(freed: runtime.sizeBytes) : failed(firstLine(result.error) ?? "simctl failed")
 
+        case .app(let app):
+            if let problem = AppInventory.recheck(app) { return failed(problem) }
+            let leftovers = AppInventory.currentLeftovers(for: app).filter { !$0.mayHoldUserData }.map(\.path)
+            if let problem = leftovers.lazy.compactMap({ unsafeLibraryItem($0) }).first { return failed(problem) }
+            let bundle = remove([app.path], mode: .trash, allowPartial: false)
+            guard !bundle.trashedPaths.isEmpty else {
+                return failed("macOS needs your password to remove this app. Drag it to the Trash in Finder.")
+            }
+            let rest = remove(leftovers, mode: .trash)
+            return done(freed: 0, trashed: bundle.trashed + rest.trashed, paths: bundle.trashedPaths + rest.trashedPaths, skipped: rest.skipped)
+
+        case .appData(let app):
+            if SystemData.runningBundleIdentifiers().contains(app.bundleID.lowercased()) { return failed("Quit \(app.name) first") }
+            let paths = AppInventory.currentLeftovers(for: app).filter(\.mayHoldUserData).map(\.path)
+            guard !paths.isEmpty else { return failed("Already gone") }
+            if let problem = paths.lazy.compactMap({ unsafeLibraryItem($0) }).first { return failed(problem) }
+            let removal = remove(paths, mode: .trash)
+            return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
+
+        case .orphan(let orphan):
+            let paths = AppInventory.currentOrphanPaths(for: orphan)
+            guard !paths.isEmpty else { return failed("The app is installed again, or the data is gone") }
+            if let problem = paths.lazy.compactMap({ unsafeLibraryItem($0) }).first { return failed(problem) }
+            let removal = remove(paths, mode: .trash)
+            return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
+
         case .file(let file):
             if let problem = UserFiles.recheck(file) { return failed(problem) }
             if let problem = duplicateProblem(file, batchFiles: batchFiles) { return failed(problem) }
@@ -373,6 +417,18 @@ public enum Cleaner {
         return nil
     }
 
+    /// App leftovers must sit directly in a known ~/Library folder and must not be links.
+    static func unsafeLibraryItem(_ path: String, home: String = NSHomeDirectory()) -> String? {
+        let library = "\(home)/Library/"
+        guard path.hasPrefix(library), !path.split(separator: "/").contains("..") else { return "Outside your Library folder" }
+        let parent = String((path as NSString).deletingLastPathComponent.dropFirst(library.count))
+        guard AppInventory.leftoverLocations.contains(where: { $0.folder == parent }) else { return "Not in an app data folder" }
+        var st = stat()
+        guard lstat(path, &st) == 0 else { return "Already gone" }
+        if st.st_mode & S_IFMT == S_IFLNK { return "It's a link, so it's left alone" }
+        return nil
+    }
+
     /// Rebuilds a cache item from the built-in catalog so stored scan data never decides what gets deleted or run.
     static func trustedCache(_ stored: CacheItem) -> CacheItem? {
         if stored.group == .docker {
@@ -415,11 +471,12 @@ public enum Cleaner {
     }
 
     /// Removes each path, measuring what actually went and skipping anything that can't be removed.
-    static func remove(_ paths: [String], mode: DeleteMode) -> Removal {
+    /// `allowPartial: false` keeps a path whole: it goes to the Trash in one piece or not at all (app bundles).
+    static func remove(_ paths: [String], mode: DeleteMode, allowPartial: Bool = true) -> Removal {
         var removal = Removal()
         for path in paths {
             if mode == .trash {
-                trash(path, into: &removal, depth: 0)
+                trash(path, into: &removal, depth: allowPartial ? 0 : Int.max)
             } else {
                 let result = Remover.remove(path)
                 removal.freed += result.freed
@@ -441,7 +498,7 @@ public enum Cleaner {
         } catch {}
 
         var st = stat()
-        guard depth < 4, lstat(path, &st) == 0, st.st_mode & S_IFMT == S_IFDIR,
+        guard depth < 4, depth >= 0, lstat(path, &st) == 0, st.st_mode & S_IFMT == S_IFDIR,
               let children = try? FileManager.default.contentsOfDirectory(atPath: path), !children.isEmpty
         else {
             removal.skipped += 1
