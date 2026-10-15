@@ -191,6 +191,15 @@ public struct Project: Identifiable, Codable, Hashable, Sendable {
 
     public var worktreeArtifact: Artifact? { artifacts.first { $0.kind == .worktree } }
 
+    /// Build folders grouped by rule, largest first (e.g. all node_modules in a monorepo).
+    public var artifactGroups: [ArtifactGroup] {
+        let folders = artifacts.filter { $0.kind == .folder }
+        let grouped = Dictionary(grouping: folders, by: \.ruleID)
+        return grouped.values
+            .map { ArtifactGroup(artifacts: $0.sorted { $0.size.reclaimable > $1.size.reclaimable }) }
+            .sorted { $0.reclaimable > $1.reclaimable }
+    }
+
     public func inactiveDays(now: Date = Date()) -> Int? {
         guard let lastActive else { return nil }
         return Calendar.current.dateComponents([.day], from: lastActive, to: now).day
@@ -200,6 +209,20 @@ public struct Project: Identifiable, Codable, Hashable, Sendable {
         guard let idle = inactiveDays(now: now) else { return true }
         return idle >= days
     }
+}
+
+public struct ArtifactGroup: Identifiable, Hashable, Sendable {
+    public let artifacts: [Artifact]
+
+    public var id: String { artifacts.first?.ruleID ?? "" }
+    public var name: String { artifacts.first?.name ?? "" }
+    public var folderName: String { artifacts.first?.folderName ?? "" }
+    public var tier: SafetyTier { artifacts.first?.tier ?? .rebuildable }
+    public var rebuildHint: String? { artifacts.first?.rebuildHint }
+    public var reclaimable: Int64 { artifacts.reduce(0) { $0 + $1.size.reclaimable } }
+    public var allocated: Int64 { artifacts.reduce(0) { $0 + $1.size.allocated } }
+    public var blockedReason: String? { artifacts.lazy.compactMap(\.blockedReason).first }
+    public var warning: String? { artifacts.lazy.compactMap(\.warning).first }
 }
 
 public enum CleanMethod: Codable, Hashable, Sendable {
@@ -244,8 +267,10 @@ public struct CacheItem: Identifiable, Codable, Hashable, Sendable {
     public var size: SizeInfo
     public var toolPath: String?
     public var blockedReason: String?
+    /// App that must be quit before cleaning (process name).
+    public let quitApp: String?
 
-    public init(id: String, name: String, group: CacheGroup, symbol: String, detail: String, paths: [String], tier: SafetyTier, method: CleanMethod, fallback: CleanMethod? = nil, size: SizeInfo = .zero, toolPath: String? = nil, blockedReason: String? = nil) {
+    public init(id: String, name: String, group: CacheGroup, symbol: String, detail: String, paths: [String], tier: SafetyTier, method: CleanMethod, fallback: CleanMethod? = nil, size: SizeInfo = .zero, toolPath: String? = nil, blockedReason: String? = nil, quitApp: String? = nil) {
         self.id = id
         self.name = name
         self.group = group
@@ -258,6 +283,7 @@ public struct CacheItem: Identifiable, Codable, Hashable, Sendable {
         self.size = size
         self.toolPath = toolPath
         self.blockedReason = blockedReason
+        self.quitApp = quitApp
     }
 
     /// The method that will run, given which tools are installed.
@@ -430,7 +456,7 @@ extension String {
 
     public var abbreviatingHome: String { (self as NSString).abbreviatingWithTildeInPath }
 
-    func isInside(_ ancestor: String) -> Bool {
+    public func isInside(_ ancestor: String) -> Bool {
         self == ancestor || hasPrefix(ancestor.hasSuffix("/") ? ancestor : ancestor + "/")
     }
 }

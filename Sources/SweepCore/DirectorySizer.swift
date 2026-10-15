@@ -52,21 +52,13 @@ public enum DirectorySizer {
 
     /// Sizes many folders, a few at a time, returning results keyed by path.
     public static func sizes(of paths: [String], concurrency: Int = 4, onEach: (@Sendable (String, SizeInfo) -> Void)? = nil) async -> [String: SizeInfo] {
-        await withTaskGroup(of: (String, SizeInfo).self) { group in
-            var results: [String: SizeInfo] = [:]
-            var iterator = paths.makeIterator()
-            for _ in 0..<max(1, concurrency) {
-                guard let path = iterator.next() else { break }
-                group.addTask { (path, size(of: path)) }
-            }
-            while let (path, info) = await group.next() {
-                results[path] = info
+        await offload {
+            let infos = Parallel.map(paths, width: concurrency) { path in
+                let info = size(of: path)
                 onEach?(path, info)
-                if let next = iterator.next() {
-                    group.addTask { (next, size(of: next)) }
-                }
+                return info
             }
-            return results
+            return Dictionary(zip(paths, infos), uniquingKeysWith: { first, _ in first })
         }
     }
 
