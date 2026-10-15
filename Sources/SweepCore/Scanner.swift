@@ -22,6 +22,7 @@ public struct Scanner: Sendable {
             reuse?.cached(SystemInfo.trashPath, previous?.trashSize) ?? DirectorySizer.size(of: SystemInfo.trashPath).allocated
         }
         async let snapshots = offload { SystemInfo.hasLocalSnapshots() }
+        async let files = offload { UserFiles.scan() }
 
         let dockerResult = await docker
         let (projectList, measuredCount) = await projects
@@ -38,6 +39,7 @@ public struct Scanner: Sendable {
             hasLocalSnapshots: await snapshots,
             hasFullDiskAccess: SystemInfo.hasFullDiskAccess()
         )
+        result.files = await files
         result.journal = mark
         result.measuredCount = measuredCount
         result.duration = Date().timeIntervalSince(started)

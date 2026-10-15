@@ -4,10 +4,10 @@ import Observation
 import SweepCore
 
 enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
-    case overview, projects, caches, simulators, systemData, trash, history
+    case overview, projects, caches, simulators, systemData, files, trash, history
 
     static let developer: [SidebarSection] = [.projects, .caches, .simulators]
-    static let mac: [SidebarSection] = [.systemData]
+    static let mac: [SidebarSection] = [.systemData, .files]
     static let general: [SidebarSection] = [.trash, .history]
 
     var id: String { rawValue }
@@ -19,6 +19,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .caches: "Caches"
         case .simulators: "Simulators"
         case .systemData: "System Data"
+        case .files: "Files"
         case .trash: "Trash"
         case .history: "History"
         }
@@ -31,6 +32,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .caches: "archivebox"
         case .simulators: "iphone.gen3"
         case .systemData: "internaldrive"
+        case .files: "doc.on.doc"
         case .trash: "trash"
         case .history: "clock.arrow.circlepath"
         }
@@ -186,6 +188,10 @@ final class AppModel {
             let target = CleanTarget.runtime(runtime)
             map[target.id] = target
         }
+        for file in result.files ?? [] {
+            let target = CleanTarget.file(file)
+            map[target.id] = target
+        }
         targets = map
     }
 
@@ -193,6 +199,7 @@ final class AppModel {
     func id(for item: CacheItem) -> String { "cache:\(item.id)" }
     func id(for device: SimulatorDevice) -> String { "simulator:\(device.udid)" }
     func id(for runtime: SimulatorRuntime) -> String { "runtime:\(runtime.id)" }
+    func id(for file: UserFile) -> String { "file:\(file.path)" }
 
     func isSelectable(_ id: String) -> Bool {
         guard let target = targets[id] else { return false }
@@ -309,6 +316,7 @@ final class AppModel {
         }
         updated.caches.removeAll { $0.group == .docker && cleaned.contains(id(for: $0)) }
         updated.simulators.removeAll { cleaned.contains(id(for: $0)) }
+        updated.files?.removeAll { cleaned.contains(id(for: $0)) }
         updated.runtimes.removeAll { cleaned.contains(id(for: $0)) }
         updated.disk = SystemInfo.disk() ?? updated.disk
 

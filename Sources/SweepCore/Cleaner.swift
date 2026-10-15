@@ -6,6 +6,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
     case cache(CacheItem)
     case simulator(SimulatorDevice)
     case runtime(SimulatorRuntime)
+    case file(UserFile)
 
     public var id: String {
         switch self {
@@ -13,6 +14,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache(let item): "cache:\(item.id)"
         case .simulator(let device): "simulator:\(device.udid)"
         case .runtime(let runtime): "runtime:\(runtime.id)"
+        case .file(let file): "file:\(file.path)"
         }
     }
 
@@ -23,6 +25,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache(let item): item.name
         case .simulator(let device): "\(device.name) (\(device.runtime))"
         case .runtime(let runtime): "\(runtime.name) runtime"
+        case .file(let file): file.name
         }
     }
 
@@ -32,6 +35,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache(let item): item.size.reclaimable
         case .simulator(let device): device.size.reclaimable
         case .runtime(let runtime): runtime.sizeBytes
+        case .file(let file): file.reclaimable
         }
     }
 
@@ -40,6 +44,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .artifact(let artifact, _): artifact.tier
         case .cache(let item): item.tier
         case .simulator, .runtime: .rebuildable
+        case .file: .review
         }
     }
 
@@ -49,6 +54,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache(let item): item.paths.first
         case .simulator(let device): device.path
         case .runtime: nil
+        case .file(let file): file.path
         }
     }
 
@@ -58,6 +64,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache: nil
         case .simulator: "Create it again in Xcode › Devices and Simulators"
         case .runtime: "Download it again in Xcode › Settings › Components"
+        case .file: "Put it back from the Trash if you need it"
         }
     }
 
@@ -67,11 +74,13 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .cache(let item): item.blockedReason
         case .simulator(let device): device.isBooted ? "Running. Shut it down first." : nil
         case .runtime(let runtime): runtime.isDeletable ? nil : "macOS manages this runtime"
+        case .file: nil
         }
     }
 
     /// Whether deletion goes through the Trash (commands always delete directly).
     public func usesTrash(_ mode: DeleteMode) -> Bool {
+        if case .file = self { return true }
         guard mode == .trash else { return false }
         switch self {
         case .artifact(let artifact, _): return artifact.kind == .folder
@@ -80,6 +89,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
             if case .command = item.effectiveMethod { return false }
             return true
         case .simulator, .runtime: return false
+        case .file: return true
         }
     }
 }
@@ -125,9 +135,13 @@ public enum Cleaner {
         let before = SystemInfo.disk()?.available ?? 0
         var report = CleanReport(date: Date(), mode: mode, outcomes: [], diskFreedBytes: 0)
 
+        let batchFiles = Set(targets.compactMap { target -> String? in
+            if case .file(let file) = target { return file.path }
+            return nil
+        })
         for (index, target) in ordered(targets).enumerated() {
             progress?(index, target)
-            let outcome = await offload { clean(target, mode: mode) }
+            let outcome = await offload { clean(target, mode: mode, batchFiles: batchFiles) }
             report.outcomes.append(outcome)
         }
 
@@ -186,7 +200,7 @@ public enum Cleaner {
         }
     }
 
-    private static func clean(_ target: CleanTarget, mode: DeleteMode) -> CleanOutcome {
+    private static func clean(_ target: CleanTarget, mode: DeleteMode, batchFiles: Set<String> = []) -> CleanOutcome {
         func failed(_ message: String) -> CleanOutcome {
             CleanOutcome(targetID: target.id, title: target.title, path: target.path, bytes: 0, succeeded: false,
                          message: message, rebuildHint: target.rebuildHint, trashedPaths: [], freedBytes: 0, trashedBytes: 0, skippedItems: nil)
@@ -264,7 +278,26 @@ public enum Cleaner {
         case .runtime(let runtime):
             let result = Shell.run("/usr/bin/xcrun", ["simctl", "runtime", "delete", runtime.id], timeout: 300)
             return result.succeeded ? done(freed: runtime.sizeBytes) : failed(firstLine(result.error) ?? "simctl failed")
+
+        case .file(let file):
+            if let problem = UserFiles.recheck(file) { return failed(problem) }
+            if let problem = duplicateProblem(file, batchFiles: batchFiles) { return failed(problem) }
+            let removal = remove([file.path], mode: .trash)
+            return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
         }
+    }
+
+    /// Never removes every copy of a duplicate: one copy outside the batch (or the first one) is always kept and re-verified.
+    static func duplicateProblem(_ file: UserFile, batchFiles: Set<String>) -> String? {
+        guard let hash = file.contentHash, let others = file.otherCopies, !others.isEmpty else { return nil }
+        let group = ([file.path] + others).sorted()
+        let survivors = group.filter { !batchFiles.contains($0) }
+        let keepers = survivors.isEmpty ? [group[0]] : survivors
+        if keepers.contains(file.path) { return "Kept as the last copy" }
+        let verified = keepers.contains { path in
+            !UserFiles.isDataless(path) && UserFiles.fullHash(path) == hash
+        }
+        return verified ? nil : "No identical copy is left, so this one is kept"
     }
 
     /// Confirms an artifact is still what the scan found and is safe to remove now.

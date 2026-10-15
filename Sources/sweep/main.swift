@@ -124,6 +124,16 @@ func printReport(_ result: ScanResult, options: Options) {
         }
     }
 
+    if let files = result.files, !files.isEmpty {
+        print("\n\(bold)YOUR FILES\(reset)  \(dim)(review only, always moved to the Trash)\(reset)")
+        for reason in UserFileReason.allCases {
+            let matching = files.filter { $0.reasons.contains(reason) }
+            guard !matching.isEmpty else { continue }
+            let total = matching.reduce(0) { $0 + $1.reclaimable }
+            print("\(pad(reason.title, 34))\(rpad(bytes(total), 10))  \(dim)\(matching.count) files\(reset)")
+        }
+    }
+
     if result.dockerRunning == false { print("\n\(dim)Docker is installed but not running.\(reset)") }
     if result.hasLocalSnapshots { print("\n\(dim)Time Machine local snapshots exist; macOS frees deleted space gradually.\(reset)") }
     if !result.hasFullDiskAccess { print("\n\(dim)Full Disk Access is off for this terminal; some Library folders may be skipped.\(reset)") }
