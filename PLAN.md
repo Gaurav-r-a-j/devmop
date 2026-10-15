@@ -210,6 +210,7 @@ Phase 1 is useful on its own as soon as it's done. Run it against this Mac and c
 
 ## 10. Open decisions
 1. ~~Tauri or SwiftUI~~ — decided: SwiftUI.
+   Decided defaults: inactive after 60 days, Move to Trash, built for commercial release (Developer ID + notarization).
 2. Default "inactive" threshold: 30, 60 or 90 days?
 3. Default delete mode: Trash (recommended) or permanent?
 4. Personal use only, or published (affects notarization and naming)?
