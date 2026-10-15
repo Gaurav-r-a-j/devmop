@@ -1,3 +1,4 @@
+import Darwin
 import Foundation
 
 public struct ShellResult: Sendable {
@@ -12,11 +13,6 @@ public struct ShellResult: Sendable {
 /// Runs command-line tools without a shell, with a timeout and a usable PATH.
 public enum Shell {
     public static func run(_ executable: String, _ arguments: [String], in directory: String? = nil, timeout: TimeInterval = 30, stdin: URL? = nil) -> ShellResult {
-        let process = Process()
-        process.executableURL = URL(fileURLWithPath: executable)
-        process.arguments = arguments
-        process.currentDirectoryURL = URL(fileURLWithPath: directory ?? neutralDirectory)
-
         var environment = ProcessInfo.processInfo.environment
         let toolDirectory = (executable as NSString).deletingLastPathComponent
         environment["PATH"] = ([toolDirectory] + ToolLocator.searchDirectories).joined(separator: ":")
@@ -29,42 +25,119 @@ public enum Shell {
         environment["NPM_CONFIG_UPDATE_NOTIFIER"] = "false"
         environment["COREPACK_ENABLE_DOWNLOAD_PROMPT"] = "0"
         environment["DOCKER_CLI_HINTS"] = "false"
-        process.environment = environment
 
-        let outPipe = Pipe()
-        let errPipe = Pipe()
-        process.standardOutput = outPipe
-        process.standardError = errPipe
-        if let stdin, let handle = try? FileHandle(forReadingFrom: stdin) {
-            process.standardInput = handle
-        } else {
-            process.standardInput = FileHandle.nullDevice
+        var outFDs: [Int32] = [-1, -1]
+        var errFDs: [Int32] = [-1, -1]
+        guard pipe(&outFDs) == 0 else { return failure("Couldn't create a pipe") }
+        guard pipe(&errFDs) == 0 else {
+            close(outFDs[0]); close(outFDs[1])
+            return failure("Couldn't create a pipe")
         }
 
-        let outCollector = PipeCollector(outPipe.fileHandleForReading)
-        let errCollector = PipeCollector(errPipe.fileHandleForReading)
+        var actions: posix_spawn_file_actions_t?
+        posix_spawn_file_actions_init(&actions)
+        defer { posix_spawn_file_actions_destroy(&actions) }
+        posix_spawn_file_actions_addopen(&actions, 0, stdin?.path ?? "/dev/null", O_RDONLY, 0)
+        posix_spawn_file_actions_adddup2(&actions, outFDs[1], 1)
+        posix_spawn_file_actions_adddup2(&actions, errFDs[1], 2)
+        posix_spawn_file_actions_addchdir_np(&actions, directory ?? neutralDirectory)
 
-        let finished = DispatchSemaphore(value: 0)
-        process.terminationHandler = { _ in finished.signal() }
-        do {
-            try process.run()
-        } catch {
-            return ShellResult(status: -1, output: "", error: error.localizedDescription, timedOut: false)
+        var attributes: posix_spawnattr_t?
+        posix_spawnattr_init(&attributes)
+        defer { posix_spawnattr_destroy(&attributes) }
+        // Close every other descriptor in the child, so no command inherits another command's pipes.
+        posix_spawnattr_setflags(&attributes, Int16(POSIX_SPAWN_CLOEXEC_DEFAULT | POSIX_SPAWN_SETPGROUP))
+        posix_spawnattr_setpgroup(&attributes, 0)
+
+        let argv = ([executable] + arguments).map { strdup($0) } + [nil]
+        let envp = environment.map { strdup("\($0.key)=\($0.value)") } + [nil]
+        defer {
+            argv.forEach { free($0) }
+            envp.forEach { free($0) }
         }
 
-        var timedOut = false
-        if finished.wait(timeout: .now() + timeout) == .timedOut {
-            timedOut = true
-            process.terminate()
-            _ = finished.wait(timeout: .now() + 2)
+        var pid: pid_t = 0
+        let spawned = posix_spawn(&pid, executable, &actions, &attributes, argv, envp)
+        close(outFDs[1])
+        close(errFDs[1])
+        guard spawned == 0 else {
+            close(outFDs[0]); close(errFDs[0])
+            return failure(String(cString: strerror(spawned)))
         }
 
+        let collected = collect(pid: pid, out: outFDs[0], err: errFDs[0], timeout: timeout)
+        let raw = collected.status
+        let status: Int32 = (raw & 0x7f) == 0 ? (raw >> 8) & 0xff : 128 + (raw & 0x7f)
         return ShellResult(
-            status: process.terminationStatus,
-            output: outCollector.finish(),
-            error: errCollector.finish(),
-            timedOut: timedOut
+            status: collected.exited ? status : -1,
+            output: String(decoding: collected.output, as: UTF8.self),
+            error: String(decoding: collected.error, as: UTF8.self),
+            timedOut: collected.timedOut || !collected.complete
         )
+    }
+
+    /// Reads both pipes and waits for the process on the calling thread, so no extra threads are needed.
+    private static func collect(pid: pid_t, out: Int32, err: Int32, timeout: TimeInterval)
+        -> (output: Data, error: Data, status: Int32, exited: Bool, timedOut: Bool, complete: Bool) {
+        var output = Data()
+        var error = Data()
+        var open: [Int32: Bool] = [out: true, err: true]
+        var status: Int32 = 0
+        var exited = false
+        var timedOut = false
+        let deadline = Date().addingTimeInterval(timeout)
+        var exitedAt: Date?
+        var buffer = [UInt8](repeating: 0, count: 65_536)
+
+        while true {
+            if !exited, waitpid(pid, &status, WNOHANG) == pid {
+                exited = true
+                exitedAt = Date()
+            }
+            let readable = open.filter(\.value).map(\.key)
+            if exited, readable.isEmpty { break }
+            // A background process that kept the pipe open shouldn't hold us forever after the command ended.
+            if let exitedAt, Date().timeIntervalSince(exitedAt) > 2 { break }
+            if !timedOut, Date() > deadline {
+                timedOut = true
+                kill(-pid, SIGTERM)
+                kill(pid, SIGTERM)
+                let grace = Date().addingTimeInterval(2)
+                while waitpid(pid, &status, WNOHANG) != pid, Date() < grace { usleep(20_000) }
+                if waitpid(pid, &status, WNOHANG) == 0 {
+                    kill(-pid, SIGKILL)
+                    kill(pid, SIGKILL)
+                    waitpid(pid, &status, 0)
+                }
+                exited = true
+                exitedAt = Date()
+            }
+
+            guard !readable.isEmpty else {
+                usleep(10_000)
+                continue
+            }
+            var fds = readable.map { pollfd(fd: $0, events: Int16(POLLIN), revents: 0) }
+            let ready = poll(&fds, nfds_t(fds.count), 50)
+            if ready < 0, errno != EINTR { break }
+            for entry in fds where entry.revents != 0 {
+                let count = read(entry.fd, &buffer, buffer.count)
+                if count > 0 {
+                    if entry.fd == out { output.append(buffer, count: count) } else { error.append(buffer, count: count) }
+                } else if count == 0 || (errno != EAGAIN && errno != EINTR) {
+                    open[entry.fd] = false
+                }
+            }
+        }
+
+        let complete = !open.values.contains(true)
+        close(out)
+        close(err)
+        return (output, error, status, exited, timedOut, complete)
+    }
+
+    private static func failure(_ message: String) -> ShellResult {
+        ShellResult(status: -1, output: "", error: message, timedOut: false)
     }
 
     /// An empty folder tools run in, so none of them picks up a project's config.
@@ -76,29 +149,6 @@ public enum Shell {
 
     public static func git(_ arguments: [String], in directory: String, timeout: TimeInterval = 20, stdin: URL? = nil) -> ShellResult {
         run("/usr/bin/git", ["-C", directory] + arguments, timeout: timeout, stdin: stdin)
-    }
-}
-
-private final class PipeCollector: @unchecked Sendable {
-    private var data = Data()
-    private let lock = NSLock()
-    private let done = DispatchSemaphore(value: 0)
-
-    init(_ handle: FileHandle) {
-        DispatchQueue.global(qos: .utility).async { [self] in
-            let all = handle.readDataToEndOfFile()
-            lock.lock()
-            data = all
-            lock.unlock()
-            done.signal()
-        }
-    }
-
-    func finish() -> String {
-        _ = done.wait(timeout: .now() + 5)
-        lock.lock()
-        defer { lock.unlock() }
-        return String(decoding: data, as: UTF8.self)
     }
 }
 

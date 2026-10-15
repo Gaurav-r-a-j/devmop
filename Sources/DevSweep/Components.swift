@@ -72,6 +72,8 @@ extension CacheGroup {
         case .testing: .pink
         case .docker: .cyan
         case .trash: .brown
+        case .system: .gray
+        case .browsers: .orange
         }
     }
 }
@@ -82,14 +84,15 @@ extension Project {
 }
 
 enum Category: String, CaseIterable, Identifiable {
-    case projects, caches, simulators, docker, trash
+    case projects, caches, system, simulators, docker, trash
 
     var id: String { rawValue }
 
     var title: String {
         switch self {
         case .projects: "Project build files"
-        case .caches: "Caches"
+        case .caches: "Developer caches"
+        case .system: "System data"
         case .simulators: "Simulators"
         case .docker: "Docker"
         case .trash: "Trash"
@@ -100,6 +103,7 @@ enum Category: String, CaseIterable, Identifiable {
         switch self {
         case .projects: .blue
         case .caches: .purple
+        case .system: .gray
         case .simulators: .orange
         case .docker: .cyan
         case .trash: .brown
@@ -110,6 +114,7 @@ enum Category: String, CaseIterable, Identifiable {
         switch self {
         case .projects: "folder.fill"
         case .caches: "archivebox.fill"
+        case .system: "internaldrive.fill"
         case .simulators: "iphone.gen3"
         case .docker: "shippingbox.fill"
         case .trash: "trash.fill"
@@ -120,6 +125,7 @@ enum Category: String, CaseIterable, Identifiable {
         switch self {
         case .projects: .projects
         case .caches, .docker: .caches
+        case .system: .systemData
         case .trash: .trash
         case .simulators: .simulators
         }
@@ -129,6 +135,7 @@ enum Category: String, CaseIterable, Identifiable {
         switch self {
         case .projects: result.projectBytes
         case .caches: result.cacheBytes
+        case .system: result.systemBytes
         case .simulators: result.simulatorBytes
         case .docker: result.dockerBytes
         case .trash: result.trashBytes
@@ -180,11 +187,18 @@ struct BreakdownItem: Identifiable {
             items.append(BreakdownItem(id: kind.id, title: kind.title, bytes: bytes, color: kind.color, section: .projects))
         }
 
-        for group in CacheGroup.allCases where group != .docker && group != .trash {
+        for group in CacheGroup.allCases where group.isDeveloper {
             let bytes = result.caches.filter { $0.group == group }.reduce(0) { $0 + $1.size.reclaimable }
             items.append(BreakdownItem(id: "cache-\(group.rawValue)", title: group.title + (group == .apple ? " caches" : ""),
                                        bytes: bytes, color: cacheColors[group] ?? .purple, section: .caches))
         }
+
+        let backups = result.caches.filter { $0.id.hasPrefix("ios-backup:") }.reduce(0) { $0 + $1.size.reclaimable }
+        let browsers = result.caches.filter { $0.group == .browsers }.reduce(0) { $0 + $1.size.reclaimable }
+        let otherSystem = result.systemBytes - backups - browsers
+        items.append(BreakdownItem(id: "backups", title: "iPhone & iPad backups", bytes: backups, color: rgb(142, 142, 147), section: .systemData))
+        items.append(BreakdownItem(id: "browsers", title: "Browser caches", bytes: browsers, color: rgb(255, 120, 70), section: .systemData))
+        items.append(BreakdownItem(id: "system-other", title: "App caches, logs & installers", bytes: otherSystem, color: rgb(99, 99, 102), section: .systemData))
 
         let devices = result.simulators.reduce(0) { $0 + $1.size.reclaimable }
         let runtimes = result.runtimes.filter(\.isDeletable).reduce(0) { $0 + $1.sizeBytes }

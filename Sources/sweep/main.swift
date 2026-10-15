@@ -77,7 +77,7 @@ func printReport(_ result: ScanResult, options: Options) {
     if let disk = result.disk {
         print("\(bold)Disk\(reset)  \(bytes(disk.used)) used of \(bytes(disk.total)), \(bytes(disk.available)) available")
     }
-    print("\(bold)Reclaimable\(reset)  \(bytes(result.totalReclaimable))  \(dim)(projects \(bytes(result.projectBytes)), caches \(bytes(result.cacheBytes)), simulators \(bytes(result.simulatorBytes)), docker \(bytes(result.dockerBytes)))\(reset)")
+    print("\(bold)Reclaimable\(reset)  \(bytes(result.totalReclaimable))  \(dim)(projects \(bytes(result.projectBytes)), caches \(bytes(result.cacheBytes)), simulators \(bytes(result.simulatorBytes)), docker \(bytes(result.dockerBytes)), system data \(bytes(result.systemBytes)), trash \(bytes(result.trashBytes)))\(reset)")
     let reused = result.measuredCount.map { " — measured \($0) changed folders, reused the rest" } ?? ""
     print("\(dim)Scanned in \(String(format: "%.1f", result.duration))s\(reused)\(reset)\n")
 

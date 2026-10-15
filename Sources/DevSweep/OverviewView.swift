@@ -61,7 +61,7 @@ struct OverviewView: View {
                     .font(.system(size: 52, weight: .bold, design: .rounded))
                     .monospacedDigit()
                     .contentTransition(.numericText())
-                Text("Recommended now: \(formatBytes(model.recommendedBytes)) from safe caches and projects untouched for \(model.settings.inactiveDays)+ days.")
+                Text("Recommended now: \(formatBytes(model.recommendedBytes)) from safe developer caches and projects untouched for \(model.settings.inactiveDays)+ days.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
             }
@@ -122,7 +122,9 @@ struct OverviewView: View {
             let inactive = result.projects.filter { $0.isInactive(days: model.settings.inactiveDays) }.count
             return "\(result.projects.count) projects · \(inactive) inactive"
         case .caches:
-            return "\(result.caches.filter { $0.group != .docker }.count) caches"
+            return "\(result.caches.filter { $0.group.isDeveloper }.count) caches"
+        case .system:
+            return "Backups, app caches, logs"
         case .simulators:
             return "\(result.simulators.count) devices · \(result.runtimes.count) runtimes"
         case .trash:

@@ -68,7 +68,8 @@ struct ContentView: View {
                     switch model.section ?? .overview {
                     case .overview: OverviewView()
                     case .projects: ProjectsView()
-                    case .caches: CachesView()
+                    case .caches: CachesView(scope: .developer)
+                    case .systemData: CachesView(scope: .system)
                     case .simulators: SimulatorsView()
                     case .trash: TrashView()
                     case .history: HistoryView()
@@ -118,13 +119,11 @@ struct SidebarView: View {
         @Bindable var model = model
 
         List(selection: $model.section) {
-            Section {
-                ForEach(SidebarSection.allCases) { section in
-                    Label(section.title, systemImage: section.symbol)
-                        .badge(badge(for: section))
-                        .tag(section)
-                }
-            }
+            Label(SidebarSection.overview.title, systemImage: SidebarSection.overview.symbol)
+                .tag(SidebarSection.overview)
+            Section("Developer") { rows(SidebarSection.developer) }
+            Section("Mac") { rows(SidebarSection.mac) }
+            Section { rows(SidebarSection.general) }
         }
         .listStyle(.sidebar)
         .safeAreaInset(edge: .bottom) {
@@ -145,6 +144,14 @@ struct SidebarView: View {
         }
     }
 
+    private func rows(_ sections: [SidebarSection]) -> some View {
+        ForEach(sections) { section in
+            Label(section.title, systemImage: section.symbol)
+                .badge(badge(for: section))
+                .tag(section)
+        }
+    }
+
     private func badge(for section: SidebarSection) -> Text? {
         guard let result = model.result else { return nil }
         let bytes: Int64
@@ -153,6 +160,7 @@ struct SidebarView: View {
         case .caches: bytes = result.cacheBytes + result.dockerBytes
         case .simulators: bytes = result.simulatorBytes
         case .trash: bytes = result.trashBytes
+        case .systemData: bytes = result.systemBytes
         case .overview, .history: return nil
         }
         return bytes > 0 ? Text(formatBytes(bytes)) : nil

@@ -4,7 +4,11 @@ import Observation
 import SweepCore
 
 enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
-    case overview, projects, caches, simulators, trash, history
+    case overview, projects, caches, simulators, systemData, trash, history
+
+    static let developer: [SidebarSection] = [.projects, .caches, .simulators]
+    static let mac: [SidebarSection] = [.systemData]
+    static let general: [SidebarSection] = [.trash, .history]
 
     var id: String { rawValue }
 
@@ -14,6 +18,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "Projects"
         case .caches: "Caches"
         case .simulators: "Simulators"
+        case .systemData: "System Data"
         case .trash: "Trash"
         case .history: "History"
         }
@@ -25,6 +30,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "folder"
         case .caches: "archivebox"
         case .simulators: "iphone.gen3"
+        case .systemData: "internaldrive"
         case .trash: "trash"
         case .history: "clock.arrow.circlepath"
         }
@@ -248,7 +254,7 @@ final class AppModel {
                 .filter { $0.kind == .folder && $0.tier <= .rebuildable }
                 .map(id(for:))
         }
-        ids += result.caches.filter { $0.tier == .safe }.map(id(for:))
+        ids += result.caches.filter { $0.tier == .safe && $0.group.isDeveloper }.map(id(for:))
         return ids.filter(isSelectable)
     }
 

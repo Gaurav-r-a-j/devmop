@@ -114,4 +114,25 @@ struct SafetyTests {
         #expect(removed.freed == 0)
         #expect(fx.exists("keep.txt"))
     }
+
+    @Test func concurrentCommandsNeverLoseOutput() {
+        let slow = DispatchQueue.global()
+        slow.async { _ = Shell.run("/bin/sleep", ["3"]) }
+        let results = Parallel.map(Array(0..<40), width: 16) { index in
+            Shell.run("/bin/echo", ["line-\(index)"], timeout: 10)
+        }
+        for (index, result) in results.enumerated() {
+            #expect(result.succeeded)
+            #expect(result.output == "line-\(index)\n")
+        }
+    }
+
+    @Test func failedAndTimedOutCommandsAreNotSuccess() {
+        #expect(!Shell.run("/usr/bin/false", []).succeeded)
+        #expect(Shell.run("/bin/sh", ["-c", "exit 3"]).status == 3)
+        let slow = Shell.run("/bin/sleep", ["5"], timeout: 0.5)
+        #expect(slow.timedOut)
+        #expect(!slow.succeeded)
+        #expect(!Shell.run("/no/such/tool", []).succeeded)
+    }
 }

@@ -151,6 +151,22 @@ public enum SystemInfo {
         return DiskUsage(total: Int64(total), available: available)
     }
 
+    /// Space macOS can reclaim on its own (snapshots, evictable iCloud files), estimated from the two "available" figures.
+    public static func purgeableBytes(for path: String = NSHomeDirectory()) -> Int64 {
+        let url = URL(fileURLWithPath: path)
+        guard let values = try? url.resourceValues(forKeys: [.volumeAvailableCapacityForImportantUsageKey, .volumeAvailableCapacityKey]),
+              let important = values.volumeAvailableCapacityForImportantUsage,
+              let plain = values.volumeAvailableCapacity
+        else { return 0 }
+        return max(0, important - Int64(plain))
+    }
+
+    /// Free space right now, without counting purgeable space.
+    public static func plainAvailable(for path: String = NSHomeDirectory()) -> Int64 {
+        let values = try? URL(fileURLWithPath: path).resourceValues(forKeys: [.volumeAvailableCapacityKey])
+        return Int64(values?.volumeAvailableCapacity ?? 0)
+    }
+
     public static func hasLocalSnapshots() -> Bool {
         let result = Shell.run("/usr/bin/tmutil", ["listlocalsnapshots", "/"], timeout: 10)
         return result.output.split(separator: "\n").contains { $0.contains("com.apple.TimeMachine") }

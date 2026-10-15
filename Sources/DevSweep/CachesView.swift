@@ -2,28 +2,50 @@ import SwiftUI
 import SweepCore
 
 struct CachesView: View {
+    enum Scope {
+        case developer, system
+
+        var groups: [CacheGroup] {
+            switch self {
+            case .developer: CacheGroup.allCases.filter { $0.isDeveloper } + [.docker]
+            case .system: [.system, .browsers]
+            }
+        }
+    }
+
     @Environment(AppModel.self) private var model
+    let scope: Scope
 
     var body: some View {
         if let result = model.result {
-            let groups = CacheGroup.allCases.filter { $0 != .trash }.compactMap { group -> (CacheGroup, [CacheItem])? in
+            let groups = scope.groups.compactMap { group -> (CacheGroup, [CacheItem])? in
                 let items = result.caches.filter { $0.group == group }.sorted { $0.size.reclaimable > $1.size.reclaimable }
                 return items.isEmpty && group != .docker ? nil : (group, items)
             }
+            let scoped = result.caches.filter { scope.groups.contains($0.group) }
 
             List {
                 Section {
                     HStack(alignment: .center) {
                         SectionHeader(
-                            title: formatBytes(result.cacheBytes + result.dockerBytes),
-                            subtitle: "in caches that tools download or rebuild on demand"
+                            title: formatBytes(scoped.reduce(0) { $0 + $1.size.reclaimable }),
+                            subtitle: scope == .developer
+                                ? "in caches that tools download or rebuild on demand"
+                                : "in backups, installers, logs and app caches macOS counts as System Data"
                         )
                         Spacer()
                         Button("Select All Safe") {
-                            model.setSelected(result.caches.filter { $0.tier == .safe }.map(model.id(for:)), true)
+                            model.setSelected(scoped.filter { $0.tier == .safe }.map(model.id(for:)), true)
                         }
                     }
                     .padding(.vertical, 8)
+                }
+
+                if scope == .system, !model.hasFullDiskAccess {
+                    Section {
+                        ReasonLabel(text: "Phone backups, Mail and Safari data only show up with Full Disk Access.", isBlocking: false)
+                            .padding(.vertical, 4)
+                    }
                 }
 
                 ForEach(groups, id: \.0) { group, items in

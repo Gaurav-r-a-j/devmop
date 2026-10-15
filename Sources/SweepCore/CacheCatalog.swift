@@ -2,7 +2,7 @@ import Foundation
 
 /// Known global caches, each with the safest way to clean it.
 public enum CacheCatalog {
-    static func definitions(home: String = NSHomeDirectory()) -> [CacheItem] {
+    static func developerDefinitions(home: String) -> [CacheItem] {
         let library = "\(home)/Library"
         let caches = "\(library)/Caches"
         let developer = "\(library)/Developer"
@@ -105,6 +105,15 @@ public enum CacheCatalog {
         ] + editorCaches(library: library)
     }
 
+    static func definitions(home: String = NSHomeDirectory()) -> [CacheItem] {
+        let developer = developerDefinitions(home: home)
+        let caches = "\(home)/Library/Caches/"
+        let covered = Set(developer.flatMap(\.paths).filter { $0.hasPrefix(caches) }.compactMap {
+            $0.dropFirst(caches.count).split(separator: "/").first.map(String.init)
+        })
+        return developer + SystemData.definitions(home: home, coveredCacheNames: covered)
+    }
+
     public static let trashID = "trash"
 
     private static func editorCaches(library: String) -> [CacheItem] {
@@ -165,13 +174,14 @@ public enum CacheCatalog {
     static func scan(runningNames: Set<String>, previous: [CacheItem]? = nil, reuse: SizeReuse? = nil) async -> [CacheItem] {
         let items = definitions().compactMap { item -> CacheItem? in
             var item = item
+            if item.paths.isEmpty, case .command = item.method { return item }
             item.paths = item.paths.filter { FileManager.default.fileExists(atPath: $0) }
             return item.paths.isEmpty ? nil : item
         }
 
         var sizes: [String: SizeInfo] = [:]
         var toMeasure: [String] = []
-        for item in items {
+        for item in items where !item.paths.isEmpty {
             if let reuse, let old = previous?.first(where: { $0.id == item.id }), old.paths == item.paths,
                !item.paths.contains(where: reuse.changes.touches) {
                 sizes[item.paths[0]] = old.size
@@ -189,7 +199,9 @@ public enum CacheCatalog {
         var items = measured
         for index in items.indices {
             var item = items[index]
-            item.size = item.paths.compactMap { sizes[$0] }.reduce(.zero, +)
+            if !item.paths.isEmpty {
+                item.size = item.paths.compactMap { sizes[$0] }.reduce(.zero, +)
+            }
             if case .command(let tool, _) = item.method {
                 item.toolPath = ToolLocator.find(tool)
             }

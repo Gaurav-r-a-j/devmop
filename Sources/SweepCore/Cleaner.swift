@@ -222,12 +222,16 @@ public enum Cleaner {
             case .command(let tool, let arguments):
                 guard let path = item.toolPath else { return failed("\(tool) isn't installed") }
                 let before = item.paths.isEmpty ? 0 : DirectorySizer.size(of: item.paths).reclaimable
+                let freeBefore = SystemInfo.plainAvailable()
                 let result = Shell.run(path, arguments, timeout: 900)
                 guard result.succeeded else {
                     return failed(firstLine(result.error) ?? firstLine(result.output) ?? "\(tool) failed")
                 }
                 if item.group == .docker {
                     return done(freed: DockerInspector.reclaimed(in: result.output) ?? 0)
+                }
+                if item.paths.isEmpty {
+                    return done(freed: max(0, SystemInfo.plainAvailable() - freeBefore))
                 }
                 let after = DirectorySizer.size(of: item.paths).reclaimable
                 return done(freed: max(0, before - after))
@@ -322,6 +326,11 @@ public enum Cleaner {
 
     /// Checks a cache folder right before emptying it: it must be a real folder inside your home folder.
     static func unsafeCacheFolder(_ path: String, home: String = NSHomeDirectory()) -> String? {
+        if SystemData.isMacOSInstaller(path) {
+            var st = stat()
+            guard lstat(path, &st) == 0, st.st_mode & S_IFMT == S_IFDIR else { return "Not a folder" }
+            return nil
+        }
         if let problem = unsafeLocation(path) { return problem }
         guard path.isInside(home), path != home else { return "Outside your home folder" }
         var st = stat()

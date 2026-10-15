@@ -242,6 +242,8 @@ public enum CacheGroup: String, Codable, CaseIterable, Sendable {
     case testing
     case docker
     case trash
+    case system
+    case browsers
 
     public var title: String {
         switch self {
@@ -252,6 +254,18 @@ public enum CacheGroup: String, Codable, CaseIterable, Sendable {
         case .testing: "Browsers for testing"
         case .docker: "Docker"
         case .trash: "Trash"
+        case .system: "Mac system data"
+        case .browsers: "Browser caches"
+        }
+    }
+}
+
+extension CacheGroup {
+    /// Groups shown on the developer Caches screen.
+    public var isDeveloper: Bool {
+        switch self {
+        case .packageManagers, .apple, .languages, .editors, .testing: true
+        case .docker, .trash, .system, .browsers: false
         }
     }
 }
@@ -399,13 +413,14 @@ public struct ScanResult: Codable, Sendable {
     }
 
     public var projectBytes: Int64 { projects.reduce(0) { $0 + $1.reclaimable } }
-    public var cacheBytes: Int64 { caches.filter { $0.group != .docker && $0.group != .trash }.reduce(0) { $0 + $1.size.reclaimable } }
+    public var cacheBytes: Int64 { caches.filter { $0.group.isDeveloper }.reduce(0) { $0 + $1.size.reclaimable } }
+    public var systemBytes: Int64 { caches.filter { $0.group == .system || $0.group == .browsers }.reduce(0) { $0 + $1.size.reclaimable } }
     public var dockerBytes: Int64 { caches.filter { $0.group == .docker }.reduce(0) { $0 + $1.size.reclaimable } }
     public var trashBytes: Int64 { caches.filter { $0.group == .trash }.reduce(0) { $0 + $1.size.reclaimable } }
     public var simulatorBytes: Int64 {
         simulators.reduce(0) { $0 + $1.size.reclaimable } + runtimes.filter(\.isDeletable).reduce(0) { $0 + $1.sizeBytes }
     }
-    public var totalReclaimable: Int64 { projectBytes + cacheBytes + dockerBytes + simulatorBytes + trashBytes }
+    public var totalReclaimable: Int64 { projectBytes + cacheBytes + dockerBytes + simulatorBytes + trashBytes + systemBytes }
 }
 
 public struct ScanProgress: Sendable {
@@ -453,8 +468,15 @@ public struct SweepSettings: Codable, Hashable, Sendable {
 }
 
 public enum ByteFormat {
+    private static let formatter: ByteCountFormatter = {
+        let formatter = ByteCountFormatter()
+        formatter.countStyle = .file
+        formatter.allowsNonnumericFormatting = false
+        return formatter
+    }()
+
     public static func string(_ bytes: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        formatter.string(fromByteCount: bytes)
     }
 }
 
