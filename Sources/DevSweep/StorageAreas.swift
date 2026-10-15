@@ -94,19 +94,19 @@ struct AreaInfo {
         .libraryDeveloper: AreaInfo(title: "Library › Developer", color: rgb(148, 163, 184), group: .library, status: .partly,
                                     why: "Xcode and simulator data. DerivedData, device support files and simulators are cleanable.",
                                     section: .simulators, actionTitle: "Open Simulators"),
-        .libraryOther: AreaInfo(title: "Library › everything else", color: rgb(203, 213, 225), group: .library, status: .managed,
+        .libraryOther: AreaInfo(title: "Library › everything else", color: rgb(130, 145, 165), group: .library, status: .managed,
                                 why: "Preferences, fonts, keychains, and data from tools such as the pnpm store (counted under Caches). Mostly small files apps need to work."),
 
         .homebrew: AreaInfo(title: "Homebrew packages", color: rgb(120, 113, 108), group: .system, status: .partly,
                             why: "Command-line tools installed with Homebrew. Old versions and downloads are cleaned under Caches; run brew uninstall for tools you don't need.",
                             section: .caches, actionTitle: "Open Caches"),
-        .systemLibrary: AreaInfo(title: "/Library (shared by all users)", color: rgb(168, 162, 158), group: .system, status: .managed,
+        .systemLibrary: AreaInfo(title: "/Library (shared by all users)", color: rgb(120, 113, 108), group: .system, status: .managed,
                                  why: "Fonts, audio plug-ins, printer drivers and Xcode command-line tools for every user. Changing it needs an admin password, so remove the app that added it instead."),
         .macOS: AreaInfo(title: "macOS", color: rgb(87, 83, 78), group: .system, status: .readOnly,
                          why: "macOS itself, on a sealed and signed volume. Nothing can change it, by design; that's what keeps your Mac secure."),
-        .swap: AreaInfo(title: "Swap & sleep image", color: rgb(214, 211, 209), group: .system, status: .managed,
+        .swap: AreaInfo(title: "Swap & sleep image", color: rgb(140, 134, 130), group: .system, status: .managed,
                         why: "Memory macOS moved to disk. It shrinks after a restart or when you quit apps that use a lot of memory."),
-        .preboot: AreaInfo(title: "Startup, recovery & updates", color: rgb(231, 229, 228), group: .system, status: .managed,
+        .preboot: AreaInfo(title: "Startup, recovery & updates", color: rgb(168, 162, 158), group: .system, status: .managed,
                            why: "Files macOS needs to start up, run Recovery and install updates."),
     ]
 

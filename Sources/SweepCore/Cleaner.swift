@@ -18,8 +18,8 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .simulator(let device): "simulator:\(device.udid)"
         case .runtime(let runtime): "runtime:\(runtime.id)"
         case .file(let file): "file:\(file.path)"
-        case .app(let app): "app:\(app.bundleID)"
-        case .appData(let app): "appdata:\(app.bundleID)"
+        case .app(let app): "app:\(app.path)"
+        case .appData(let app): "appdata:\(app.path)"
         case .orphan(let orphan): "orphan:\(orphan.bundleID)"
         }
     }
@@ -310,11 +310,11 @@ public enum Cleaner {
 
         case .simulator(let device):
             let before = FileManager.default.fileExists(atPath: device.path) ? DirectorySizer.size(of: device.path).reclaimable : device.size.reclaimable
-            let result = Shell.run("/usr/bin/xcrun", ["simctl", "delete", device.udid], timeout: 120)
+            let result = Shell.xcrun(["simctl", "delete", device.udid], timeout: 120)
             return result.succeeded ? done(freed: before) : failed(firstLine(result.error) ?? "simctl failed")
 
         case .runtime(let runtime):
-            let result = Shell.run("/usr/bin/xcrun", ["simctl", "runtime", "delete", runtime.id], timeout: 300)
+            let result = Shell.xcrun(["simctl", "runtime", "delete", runtime.id], timeout: 300)
             return result.succeeded ? done(freed: runtime.sizeBytes) : failed(firstLine(result.error) ?? "simctl failed")
 
         case .app(let app):
@@ -560,6 +560,22 @@ public enum History {
         } else {
             try? line.write(to: file)
         }
+        trim()
+    }
+
+    static let maxRuns = 200
+
+    /// Keeps only the most recent runs so the history file can't grow forever.
+    static func trim() {
+        guard let data = try? Data(contentsOf: file) else { return }
+        let lines = data.split(separator: 0x0A)
+        guard lines.count > maxRuns else { return }
+        var kept = Data()
+        for line in lines.suffix(maxRuns) {
+            kept.append(line)
+            kept.append(0x0A)
+        }
+        try? kept.write(to: file, options: .atomic)
     }
 
     public static func load() -> [CleanReport] {

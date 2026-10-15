@@ -25,9 +25,10 @@ public struct Scanner: Sendable {
         async let files = offload { UserFiles.scan() }
         async let inventory = AppInventory.scan(reuse: reuse)
         async let storage = StorageMap.measure(reuse: reuse)
+        let (projectList, measuredCount) = await projects
+        progress?(ScanProgress(phase: .caches, message: "Mapping your disk, apps and files", fraction: nil))
 
         let dockerResult = await docker
-        let (projectList, measuredCount) = await projects
         var result = ScanResult(
             date: started,
             roots: settings.roots,

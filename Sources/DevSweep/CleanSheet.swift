@@ -100,7 +100,6 @@ struct CleanSheet: View {
                 }
                 .buttonStyle(.borderedProminent)
                 .tint(mode == .permanent ? .red : .accentColor)
-                .keyboardShortcut(.defaultAction)
             }
             .controlSize(.large)
             .padding(20)

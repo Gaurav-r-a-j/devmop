@@ -27,7 +27,7 @@ struct DevSweepApp: App {
                     .disabled(model.result == nil)
                 Divider()
                 Button("Review & Clean…") { model.reviewSelection() }
-                    .keyboardShortcut(.delete, modifiers: .command)
+                    .keyboardShortcut(.delete, modifiers: [.command, .option])
                     .disabled(model.selection.isEmpty)
             }
         }
@@ -37,7 +37,7 @@ struct DevSweepApp: App {
                 .environment(model)
         }
 
-        MenuBarExtra {
+        MenuBarExtra(isInserted: Binding(get: { model.showsMenuBarIcon }, set: { model.showsMenuBarIcon = $0 })) {
             MenuBarView()
                 .environment(model)
         } label: {
@@ -134,7 +134,7 @@ struct SidebarView: View {
                 VStack(alignment: .leading, spacing: 6) {
                     HStack {
                         Image(systemName: "internaldrive")
-                        Text("Macintosh HD").font(.caption.weight(.medium))
+                        Text(disk.displayName).font(.caption.weight(.medium))
                     }
                     ProgressView(value: Double(disk.used), total: Double(max(disk.total, 1)))
                         .tint(Double(disk.available) / Double(max(disk.total, 1)) < 0.1 ? .red : .accentColor)
@@ -197,7 +197,6 @@ struct SelectionBar: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .keyboardShortcut(.defaultAction)
         }
         .padding(.horizontal, 20)
         .padding(.vertical, 12)
@@ -275,7 +274,7 @@ struct MenuBarView: View {
                         .foregroundStyle(.secondary)
                 }
                 if let disk = result.disk {
-                    StorageBar(segments: StorageBar.segments(for: result), total: disk.total, height: 10, showsLegend: false)
+                    StorageBar(segments: StorageBar.segments(model.breakdown), total: disk.total, height: 10, showsLegend: false)
                     Text("\(formatBytes(disk.available)) available")
                         .font(.caption)
                         .foregroundStyle(.secondary)

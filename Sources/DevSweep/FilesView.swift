@@ -70,7 +70,7 @@ struct FilesView: View {
         let shown: [UserFile] = switch tab {
         case .large: large
         case .downloads: files.filter { $0.reasons.contains(where: { $0 != .large && $0 != .duplicate }) }
-        case .duplicates: files.filter { $0.reasons.contains(.duplicate) }
+        case .duplicates: duplicateGroups.flatMap { $0 }
         }
         let bytes = shown.reduce(0) { $0 + $1.reclaimable }
 
@@ -140,7 +140,7 @@ struct FilesView: View {
         .contextMenu(forSelectionType: UserFile.ID.self) { ids in
             if let id = ids.first {
                 Button("Show in Finder") { model.revealInFinder(id) }
-                Button("Quick Look") { NSWorkspace.shared.open(URL(fileURLWithPath: id)) }
+                Button("Quick Look") { quickLook(id) }
             }
         }
         .overlay {
@@ -151,7 +151,8 @@ struct FilesView: View {
     }
 
     private var emptyText: String {
-        switch tab {
+        if model.result?.files == nil { return "Scan again to look through your files." }
+        return switch tab {
         case .large: "No files match. Try a different age filter."
         case .downloads: "Your Downloads folder has no leftover installers, extracted archives or old files."
         case .duplicates: "No duplicate files over 1 MB were found."
@@ -163,7 +164,7 @@ struct FilesView: View {
     private var duplicateGroups: [[UserFile]] {
         let copies = files.filter { $0.contentHash != nil }
         let grouped = Dictionary(grouping: copies) { $0.contentHash ?? "" }.values
-        let sorted = grouped.map { group in group.sorted { $0.path < $1.path } }
+        let sorted = grouped.filter { $0.count > 1 }.map { group in group.sorted { $0.path < $1.path } }
         return sorted.sorted { total($0) > total($1) }
     }
 
@@ -197,10 +198,20 @@ struct FilesView: View {
         let copies = group ?? (file.contentHash.map { hash in files.filter { $0.contentHash == hash } } ?? [])
         let unselectedOthers = copies.filter { $0.id != file.id && !model.isSelected(model.id(for: $0)) }
         let isLastCopy = !copies.isEmpty && !isSelected && unselectedOthers.isEmpty
-        TriStateCheckbox(state: isSelected ? .on : .off, isEnabled: model.isSelectable(id) && !isLastCopy) {
+        TriStateCheckbox(state: isSelected ? .on : .off, isEnabled: model.isSelectable(id) && !isLastCopy, label: "Select \(file.name)") {
             model.setSelected(id, $0)
         }
         .help(isLastCopy ? "The last copy of a duplicate is always kept" : "")
+    }
+
+    /// Previews a file with Quick Look without opening it, so installers never run.
+    private func quickLook(_ path: String) {
+        let process = Process()
+        process.executableURL = URL(fileURLWithPath: "/usr/bin/qlmanage")
+        process.arguments = ["-p", path]
+        process.standardOutput = FileHandle.nullDevice
+        process.standardError = FileHandle.nullDevice
+        try? process.run()
     }
 
     private func symbol(for reason: UserFileReason) -> String {

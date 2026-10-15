@@ -25,16 +25,16 @@ struct OverviewView: View {
     @ViewBuilder
     private func storage(_ result: ScanResult) -> some View {
         if let disk = result.disk {
-            let items = BreakdownItem.breakdown(for: result)
+            let items = model.breakdown
             VStack(alignment: .leading, spacing: 16) {
                 HStack(alignment: .firstTextBaseline) {
-                    Text("Macintosh HD").font(.title3.weight(.semibold))
+                    Text(disk.displayName).font(.title3.weight(.semibold))
                     Spacer()
                     Text("\(formatBytes(disk.used)) used · \(formatBytes(disk.available)) available of \(formatBytes(disk.total))")
                         .foregroundStyle(.secondary)
                         .monospacedDigit()
                 }
-                StorageBar(segments: StorageBar.segments(for: result), total: disk.total, height: 26, showsLegend: false)
+                StorageBar(segments: StorageBar.segments(items), total: disk.total, height: 26, showsLegend: false)
 
                 ForEach(BreakdownItem.Group.allCases, id: \.self) { group in
                     let rows = items.filter { $0.group == group }

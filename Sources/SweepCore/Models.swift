@@ -376,10 +376,12 @@ public struct SimulatorRuntime: Identifiable, Codable, Hashable, Sendable {
 public struct DiskUsage: Codable, Hashable, Sendable {
     public var total: Int64
     public var available: Int64
+    public var name: String?
 
-    public init(total: Int64, available: Int64) {
+    public init(total: Int64, available: Int64, name: String? = nil) {
         self.total = total
         self.available = available
+        self.name = name
     }
 
     public var used: Int64 { total - available }

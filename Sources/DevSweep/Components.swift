@@ -181,15 +181,15 @@ struct BreakdownItem: Identifiable {
         ("python-envs", "Python environments", rgb(100, 180, 255), ["venv", "venv-plain"]),
         ("native-builds", "Native & JVM builds", rgb(140, 200, 255),
          ["rust-target", "maven-target", "swiftpm", "pods", "gradle-build", "dart-tool", "flutter-build", "elixir-build", "elixir-deps", "composer-vendor", "dotnet-bin", "dotnet-obj", "terraform"]),
-        ("project-caches", "Tool caches in projects (.turbo…)", rgb(180, 220, 255), []),
+        ("project-caches", "Tool caches in projects (.turbo…)", rgb(110, 170, 230), []),
     ]
 
     private static let cacheColors: [CacheGroup: Color] = [
         .packageManagers: rgb(175, 82, 222),
         .apple: rgb(191, 90, 242),
         .languages: rgb(204, 120, 240),
-        .editors: rgb(218, 150, 250),
-        .testing: rgb(232, 185, 255),
+        .editors: rgb(190, 120, 235),
+        .testing: rgb(200, 140, 235),
         .aiModels: rgb(160, 60, 200),
     ]
 
@@ -429,8 +429,8 @@ struct StorageBar: View {
         }
     }
 
-    static func segments(for result: ScanResult) -> [Segment] {
-        BreakdownItem.breakdown(for: result).map { Segment(id: $0.id, title: $0.title, bytes: $0.bytes, color: $0.color) }
+    static func segments(_ items: [BreakdownItem]) -> [Segment] {
+        items.map { Segment(id: $0.id, title: $0.title, bytes: $0.bytes, color: $0.color) }
     }
 }
 
@@ -438,6 +438,7 @@ struct StorageBar: View {
 struct TriStateCheckbox: NSViewRepresentable {
     let state: CheckState
     var isEnabled = true
+    var label = "Select"
     let action: (Bool) -> Void
 
     func makeNSView(context: Context) -> NSButton {
@@ -451,6 +452,7 @@ struct TriStateCheckbox: NSViewRepresentable {
         context.coordinator.action = action
         context.coordinator.state = state
         button.isEnabled = isEnabled
+        button.setAccessibilityLabel(label)
         switch state {
         case .off: button.state = .off
         case .mixed: button.state = .mixed
@@ -469,7 +471,9 @@ struct TriStateCheckbox: NSViewRepresentable {
         }
 
         @objc func toggled(_ sender: NSButton) {
-            action(state != .on)
+            let selected = state != .on
+            sender.state = selected ? .on : .off
+            action(selected)
         }
     }
 }
@@ -498,4 +502,8 @@ struct SectionHeader: View {
             }
         }
     }
+}
+
+extension DiskUsage {
+    var displayName: String { name ?? "Macintosh HD" }
 }

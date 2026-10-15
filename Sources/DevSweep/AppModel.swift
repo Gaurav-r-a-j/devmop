@@ -56,6 +56,7 @@ enum CleanPhase: Equatable {
 final class AppModel {
     var section: SidebarSection? = .overview
     var settings: SweepSettings { didSet { saveSettings() } }
+    var showsMenuBarIcon: Bool { didSet { UserDefaults.standard.set(showsMenuBarIcon, forKey: Keys.menuBar) } }
     var weeklyScan: Bool { didSet { UserDefaults.standard.set(weeklyScan, forKey: Keys.weeklyScan); Automation.shared.configure(for: self) } }
 
     private(set) var result: ScanResult? { didSet { rebuildTargets() } }
@@ -64,6 +65,11 @@ final class AppModel {
     private(set) var scanFraction: Double?
     private(set) var history: [CleanReport] = History.load()
     private(set) var targets: [String: CleanTarget] = [:]
+    /// The disk breakdown for the current result, computed once per change.
+    private(set) var breakdown: [BreakdownItem] = []
+    /// Ticks every minute so "Scanned … ago" stays current.
+    private(set) var clock = Date()
+    @ObservationIgnored private var clockTimer: Timer?
 
     private(set) var hasFullDiskAccess = SystemInfo.hasFullDiskAccess()
     private var activationObserver: NSObjectProtocol?
@@ -80,6 +86,7 @@ final class AppModel {
     private enum Keys {
         static let settings = "settings"
         static let weeklyScan = "weeklyScan"
+        static let menuBar = "showsMenuBarIcon"
     }
 
     init() {
@@ -90,8 +97,12 @@ final class AppModel {
             settings = SweepSettings()
         }
         weeklyScan = UserDefaults.standard.object(forKey: Keys.weeklyScan) as? Bool ?? true
+        showsMenuBarIcon = UserDefaults.standard.object(forKey: Keys.menuBar) as? Bool ?? true
         result = ScanCache.load()
         rebuildTargets()
+        clockTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
+            Task { @MainActor in self?.clock = Date() }
+        }
         activationObserver = NotificationCenter.default.addObserver(
             forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
         ) { [weak self] _ in
@@ -122,7 +133,7 @@ final class AppModel {
         guard let result else { return "Not scanned yet" }
         let formatter = RelativeDateTimeFormatter()
         formatter.unitsStyle = .full
-        return "Scanned \(formatter.localizedString(for: result.date, relativeTo: Date()))"
+        return "Scanned \(formatter.localizedString(for: result.date, relativeTo: max(clock, result.date)))"
     }
 
     func scan() async {
@@ -155,6 +166,7 @@ final class AppModel {
             }
             saveCache()
         }
+        if weeklyScan { Automation.shared.requestNotificationPermission() }
         if rescanRequested {
             rescanRequested = false
             await scan()
@@ -171,8 +183,10 @@ final class AppModel {
     private func rebuildTargets() {
         guard let result else {
             targets = [:]
+            breakdown = []
             return
         }
+        breakdown = BreakdownItem.breakdown(for: result)
         var map: [String: CleanTarget] = [:]
         for project in result.projects {
             for artifact in project.artifacts {
@@ -211,8 +225,8 @@ final class AppModel {
     func id(for device: SimulatorDevice) -> String { "simulator:\(device.udid)" }
     func id(for runtime: SimulatorRuntime) -> String { "runtime:\(runtime.id)" }
     func id(for file: UserFile) -> String { "file:\(file.path)" }
-    func uninstallID(for app: InstalledApp) -> String { "app:\(app.bundleID)" }
-    func dataID(for app: InstalledApp) -> String { "appdata:\(app.bundleID)" }
+    func uninstallID(for app: InstalledApp) -> String { "app:\(app.path)" }
+    func dataID(for app: InstalledApp) -> String { "appdata:\(app.path)" }
     func id(for orphan: OrphanedAppData) -> String { "orphan:\(orphan.bundleID)" }
 
     func isSelectable(_ id: String) -> Bool {
@@ -284,7 +298,7 @@ final class AppModel {
     }
 
     func selectRecommended() {
-        selection.formUnion(recommendedIDs)
+        selection = Set(recommendedIDs)
     }
 
     // MARK: Cleaning

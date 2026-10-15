@@ -57,7 +57,7 @@ struct AppsView: View {
         Table(apps, selection: $focused, sortOrder: $sortOrder) {
             TableColumn("") { app in
                 let id = model.uninstallID(for: app)
-                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Uninstall \(app.name)") {
                     model.setSelected(id, $0)
                 }
                 .help("Uninstall \(app.name)")
@@ -115,7 +115,12 @@ struct AppsView: View {
         }
         .overlay {
             if apps.isEmpty {
-                ContentUnavailableView.search(text: search)
+                if search.isEmpty {
+                    ContentUnavailableView("No Apps Found", systemImage: "square.grid.2x2",
+                                           description: Text(model.result?.apps == nil ? "Scan again to list your apps." : "No third-party apps are installed."))
+                } else {
+                    ContentUnavailableView.search(text: search)
+                }
             }
         }
     }
@@ -204,7 +209,7 @@ struct AppInspector: View {
     private func option(id: String, title: String, detail: String, bytes: Int64, items: [AppLeftover]) -> some View {
         VStack(alignment: .leading, spacing: 10) {
             HStack(alignment: .top, spacing: 10) {
-                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: title) {
                     model.setSelected(id, $0)
                 }
                 VStack(alignment: .leading, spacing: 3) {
@@ -244,7 +249,7 @@ struct OrphanRow: View {
     var body: some View {
         let id = model.id(for: orphan)
         HStack(alignment: .top, spacing: 10) {
-            TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+            TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Select leftovers of \(orphan.name)") {
                 model.setSelected(id, $0)
             }
             VStack(alignment: .leading, spacing: 4) {

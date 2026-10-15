@@ -119,7 +119,7 @@ struct TrashView: View {
 
             Table(sorted, sortOrder: $sortOrder) {
                 TableColumn("") { entry in
-                    TriStateCheckbox(state: checked.contains(entry.id) ? .on : .off) { isOn in
+                    TriStateCheckbox(state: checked.contains(entry.id) ? .on : .off, label: "Select \(entry.name)") { isOn in
                         if isOn { checked.insert(entry.id) } else { checked.remove(entry.id) }
                     }
                 }

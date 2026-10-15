@@ -56,6 +56,7 @@ struct SettingsView: View {
                     Text("You get a notification when more than 5 GB can be freed. Nothing is ever deleted automatically.")
                         .font(.caption)
                         .foregroundStyle(.secondary)
+                    Toggle("Show in the menu bar", isOn: $model.showsMenuBarIcon)
                     Toggle("Open at login", isOn: $launchAtLogin)
                         .onChange(of: launchAtLogin) { _, enabled in setLaunchAtLogin(enabled) }
                     if let loginError {
@@ -96,13 +97,18 @@ struct SettingsView: View {
     }
 
     private func setLaunchAtLogin(_ enabled: Bool) {
+        let status = SMAppService.mainApp.status
+        // The toggle is being reset to match reality after an error, not changed by the person.
+        if enabled == (status == .enabled) { return }
         do {
             if enabled {
                 try SMAppService.mainApp.register()
             } else {
                 try SMAppService.mainApp.unregister()
             }
-            loginError = nil
+            loginError = SMAppService.mainApp.status == .requiresApproval
+                ? "Allow DevSweep in System Settings › General › Login Items."
+                : nil
         } catch {
             loginError = "Couldn't change this: \(error.localizedDescription)"
             launchAtLogin = SMAppService.mainApp.status == .enabled
@@ -171,12 +177,16 @@ final class Automation {
     private var scheduler: NSBackgroundActivityScheduler?
     private let notifyThreshold: Int64 = 5_000_000_000
 
+    private var isScheduled = false
+
+    /// Starts or stops the weekly scan; calling it again with the setting unchanged keeps the existing schedule.
     func configure(for model: AppModel) {
+        if model.weeklyScan == isScheduled { return }
         scheduler?.invalidate()
         scheduler = nil
+        isScheduled = model.weeklyScan
         guard model.weeklyScan else { return }
 
-        requestNotificationPermission()
         let scheduler = NSBackgroundActivityScheduler(identifier: "app.devsweep.weekly-scan")
         scheduler.repeats = true
         scheduler.interval = 7 * 24 * 60 * 60
@@ -184,8 +194,8 @@ final class Automation {
         scheduler.qualityOfService = .utility
         scheduler.schedule { [weak model] completion in
             Task { @MainActor in
-                guard let model else {
-                    completion(.finished)
+                guard let model, !model.isScanning, model.cleanPhase == nil else {
+                    completion(.deferred)
                     return
                 }
                 await model.scan()
@@ -200,7 +210,8 @@ final class Automation {
 
     private var notificationsAvailable: Bool { Bundle.main.bundleIdentifier != nil }
 
-    private func requestNotificationPermission() {
+    /// Asks for notification permission once the person has used the app, not at first launch.
+    func requestNotificationPermission() {
         guard notificationsAvailable else { return }
         UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound]) { _, _ in }
     }

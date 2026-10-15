@@ -4,7 +4,7 @@ public enum SimulatorInspector {
     private static let isoFormatter = ISO8601DateFormatter()
 
     public static func devices() -> [SimulatorDevice] {
-        let result = Shell.run("/usr/bin/xcrun", ["simctl", "list", "devices", "--json"], timeout: 30)
+        let result = Shell.xcrun(["simctl", "list", "devices", "--json"], timeout: 30)
         guard result.succeeded,
               let json = try? JSONSerialization.jsonObject(with: Data(result.output.utf8)) as? [String: Any],
               let groups = json["devices"] as? [String: [[String: Any]]]
@@ -35,7 +35,7 @@ public enum SimulatorInspector {
     }
 
     public static func runtimes() -> [SimulatorRuntime] {
-        let result = Shell.run("/usr/bin/xcrun", ["simctl", "runtime", "list", "-j"], timeout: 30)
+        let result = Shell.xcrun(["simctl", "runtime", "list", "-j"], timeout: 30)
         guard result.succeeded,
               let json = try? JSONSerialization.jsonObject(with: Data(result.output.utf8)) as? [String: [String: Any]]
         else { return [] }
@@ -148,7 +148,8 @@ public enum SystemInfo {
               let total = values.volumeTotalCapacity
         else { return nil }
         let available = values.volumeAvailableCapacityForImportantUsage ?? Int64(values.volumeAvailableCapacity ?? 0)
-        return DiskUsage(total: Int64(total), available: available)
+        let name = (try? URL(fileURLWithPath: "/").resourceValues(forKeys: [.volumeLocalizedNameKey]))?.volumeLocalizedName
+        return DiskUsage(total: Int64(total), available: available, name: name)
     }
 
     /// Space macOS can reclaim on its own (snapshots, evictable iCloud files), estimated from the two "available" figures.

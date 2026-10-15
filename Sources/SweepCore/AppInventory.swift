@@ -16,7 +16,8 @@ public struct AppLeftover: Codable, Hashable, Sendable, Identifiable {
 }
 
 public struct InstalledApp: Identifiable, Codable, Hashable, Sendable {
-    public var id: String { bundleID }
+    /// The app's location, since two copies of one app share a bundle ID.
+    public var id: String { path }
     public let bundleID: String
     public let name: String
     public let path: String
@@ -91,6 +92,10 @@ public enum AppInventory {
                 leftovers: leftovers(bundleID: bundle.bundleID, name: bundle.name, library: library)
             )
             if running.contains(bundle.bundleID.lowercased()) { app.blockedReason = "Quit \(bundle.name) first" }
+            if bundles.contains(where: { $0.bundleID == bundle.bundleID && $0.path != bundle.path }) {
+                app.leftovers = []
+                app.systemPartsWarning = "Another copy of this app is installed, so its settings and data are kept."
+            }
             app.systemPartsWarning = systemParts(bundleID: bundle.bundleID)
             return app
         }
@@ -260,9 +265,10 @@ public enum AppInventory {
         return nil
     }
 
-    /// Leftovers found again right now, so only current, still-matching paths are removed.
+    /// Leftovers found again right now; none when another copy of the app is still installed.
     static func currentLeftovers(for app: InstalledApp, home: String = NSHomeDirectory()) -> [AppLeftover] {
-        leftovers(bundleID: app.bundleID, name: app.name, library: "\(home)/Library")
+        let otherCopy = findBundles(home: home).contains { $0.bundleID == app.bundleID && $0.path != app.path }
+        return otherCopy ? [] : leftovers(bundleID: app.bundleID, name: app.name, library: "\(home)/Library")
     }
 
     static func currentOrphanPaths(for orphan: OrphanedAppData, home: String = NSHomeDirectory()) -> [String] {

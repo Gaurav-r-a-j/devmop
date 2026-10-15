@@ -44,7 +44,7 @@ struct ProjectsView: View {
         Table(rows, selection: $model.focusedProject, sortOrder: $sortOrder) {
             TableColumn("") { project in
                 let ids = model.folderIDs(of: project)
-                TriStateCheckbox(state: model.checkState(ids), isEnabled: ids.contains(where: model.isSelectable)) { selected in
+                TriStateCheckbox(state: model.checkState(ids), isEnabled: ids.contains(where: model.isSelectable), label: "Select \(project.name)") { selected in
                     model.setSelected(ids, selected)
                 }
             }
@@ -87,7 +87,12 @@ struct ProjectsView: View {
         .tableStyle(.inset(alternatesRowBackgrounds: true))
         .overlay {
             if rows.isEmpty {
-                ContentUnavailableView.search(text: search)
+                if search.isEmpty {
+                    ContentUnavailableView("No \(filter == .all ? "" : filter.title + " ")Projects", systemImage: "folder",
+                                           description: Text("No projects with build folders match this filter."))
+                } else {
+                    ContentUnavailableView.search(text: search)
+                }
             }
         }
         .searchable(text: $search, placement: .toolbar, prompt: "Search projects")
@@ -243,7 +248,7 @@ struct ProjectInspector: View {
         return VStack(alignment: .leading, spacing: 10) {
             Text("Worktree").font(.headline)
             HStack(alignment: .top, spacing: 10) {
-                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Remove the whole worktree") {
                     model.setSelected(id, $0)
                 }
                 VStack(alignment: .leading, spacing: 4) {
@@ -280,7 +285,7 @@ struct ArtifactGroupRow: View {
         let ids = group.artifacts.map(model.id(for:))
         VStack(alignment: .leading, spacing: 8) {
             HStack(alignment: .top, spacing: 10) {
-                TriStateCheckbox(state: model.checkState(ids), isEnabled: ids.contains(where: model.isSelectable)) {
+                TriStateCheckbox(state: model.checkState(ids), isEnabled: ids.contains(where: model.isSelectable), label: "Select \(group.folderName)") {
                     model.setSelected(ids, $0)
                 }
                 VStack(alignment: .leading, spacing: 4) {
@@ -317,7 +322,7 @@ struct ArtifactGroupRow: View {
                                 ForEach(group.artifacts) { artifact in
                                     let id = model.id(for: artifact)
                                     HStack(spacing: 8) {
-                                        TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+                                        TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Select \(artifact.path)") {
                                             model.setSelected(id, $0)
                                         }
                                         Text(relativePath(artifact.path))

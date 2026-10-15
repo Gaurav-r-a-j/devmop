@@ -148,8 +148,22 @@ public enum Shell {
     }()
 
     public static func git(_ arguments: [String], in directory: String, timeout: TimeInterval = 20, stdin: URL? = nil) -> ShellResult {
-        run("/usr/bin/git", ["-C", directory] + arguments, timeout: timeout, stdin: stdin)
+        guard developerToolsInstalled else { return failure("Command Line Tools aren't installed") }
+        return run("/usr/bin/git", ["-C", directory] + arguments, timeout: timeout, stdin: stdin)
     }
+
+    /// Runs xcrun only when developer tools exist, since the /usr/bin stub otherwise pops up an install dialog.
+    public static func xcrun(_ arguments: [String], timeout: TimeInterval = 30) -> ShellResult {
+        guard developerToolsInstalled else { return failure("Xcode isn't installed") }
+        return run("/usr/bin/xcrun", arguments, timeout: timeout)
+    }
+
+    /// Whether Xcode or the Command Line Tools are installed; xcode-select never shows the install dialog.
+    public static let developerToolsInstalled: Bool = {
+        let result = run("/usr/bin/xcode-select", ["-p"], timeout: 5)
+        let path = result.output.trimmingCharacters(in: .whitespacesAndNewlines)
+        return result.succeeded && !path.isEmpty && FileManager.default.fileExists(atPath: path)
+    }()
 }
 
 /// Finds developer tools even when the app was launched from Finder with a minimal PATH.

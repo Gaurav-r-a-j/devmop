@@ -69,7 +69,7 @@ struct CachesView: View {
                             Spacer()
                             let ids = items.map(model.id(for:))
                             if ids.contains(where: model.isSelectable) {
-                                TriStateCheckbox(state: model.checkState(ids)) { model.setSelected(ids, $0) }
+                                TriStateCheckbox(state: model.checkState(ids), label: "Select all in \(group.title)") { model.setSelected(ids, $0) }
                                     .help("Select all in \(group.title)")
                             }
                         }
@@ -102,7 +102,7 @@ struct CacheRow: View {
     var body: some View {
         let id = model.id(for: item)
         HStack(alignment: .center, spacing: 12) {
-            TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+            TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Select \(item.name)") {
                 model.setSelected(id, $0)
             }
             IconTile(symbol: item.symbol, color: item.group.color, size: 32)
@@ -173,7 +173,7 @@ struct SimulatorsView: View {
                         ForEach(result.runtimes) { runtime in
                             let id = model.id(for: runtime)
                             HStack(spacing: 12) {
-                                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+                                TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Select \(runtime.name)") {
                                     model.setSelected(id, $0)
                                 }
                                 IconTile(symbol: "cpu", color: .orange, size: 32)
@@ -195,7 +195,7 @@ struct SimulatorsView: View {
                     ForEach(result.simulators) { device in
                         let id = model.id(for: device)
                         HStack(spacing: 12) {
-                            TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id)) {
+                            TriStateCheckbox(state: model.isSelected(id) ? .on : .off, isEnabled: model.isSelectable(id), label: "Select \(device.name)") {
                                 model.setSelected(id, $0)
                             }
                             IconTile(symbol: device.name.contains("iPad") ? "ipad" : device.name.contains("Watch") ? "applewatch" : "iphone", color: .orange.opacity(0.85), size: 32)

@@ -7,7 +7,7 @@ struct StorageMapView: View {
 
     var body: some View {
         if let result = model.result, let disk = result.disk {
-            let items = BreakdownItem.breakdown(for: result)
+            let items = model.breakdown
             let largest = items.map(\.bytes).max() ?? 1
 
             List {
@@ -15,7 +15,7 @@ struct StorageMapView: View {
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHeader(title: "\(formatBytes(disk.used)) used",
                                       subtitle: "Every part of your disk, what it is, and whether DevSweep can clean it.")
-                        StorageBar(segments: StorageBar.segments(for: result), total: disk.total, height: 22, showsLegend: false)
+                        StorageBar(segments: StorageBar.segments(items), total: disk.total, height: 22, showsLegend: false)
                         HStack(spacing: 14) {
                             ForEach([AreaStatus.cleanable, .partly, .yourData, .managed, .readOnly], id: \.self) { status in
                                 Label(status.title, systemImage: status.symbol)
