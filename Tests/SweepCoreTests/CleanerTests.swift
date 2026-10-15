@@ -253,4 +253,30 @@ import Testing
         let ordered = Cleaner.ordered([docker("docker-containers"), .app(app), docker("docker-volumes"), .appData(app), docker("docker-images")])
         #expect(ordered.map(\.id) == ["appdata:/Applications/Z.app", "app:/Applications/Z.app", "cache:docker-volumes", "cache:docker-images", "cache:docker-containers"])
     }
+
+    @Test func partlyCleanedCachesCountOnlyGrowthSinceLastClean() async {
+        let fx = Fixture()
+        await withHistory(fx) {
+            func store(_ allocated: Int64) -> CacheItem {
+                CacheItem(id: "pnpm-store", name: "pnpm store", group: .packageManagers, symbol: "", detail: "", paths: ["/x"],
+                          tier: .safe, method: .command(tool: "pnpm", arguments: ["store", "prune"]),
+                          size: SizeInfo(allocated: allocated, reclaimable: allocated))
+            }
+            #expect(CleanBaselines.adjusted(store(1_000)).size.reclaimable == 1_000)
+
+            CleanBaselines.record("pnpm-store", bytes: 800)
+            let grown = CleanBaselines.adjusted(store(1_000))
+            #expect(grown.size.reclaimable == 200)
+            #expect(grown.size.isEstimate)
+            #expect(grown.lastCleaned != nil)
+
+            let shrunk = CleanBaselines.adjusted(store(500))
+            #expect(shrunk.size.reclaimable == 0)
+            #expect(CleanBaselines.load()["pnpm-store"]?.bytes == 500)
+
+            let emptiesFully = CacheItem(id: "npm-like", name: "x", group: .packageManagers, symbol: "", detail: "", paths: ["/y"],
+                                         tier: .safe, method: .deleteContents, size: SizeInfo(allocated: 1_000, reclaimable: 1_000))
+            #expect(CleanBaselines.adjusted(emptiesFully).size.reclaimable == 1_000)
+        }
+    }
 }

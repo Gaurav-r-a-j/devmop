@@ -204,6 +204,7 @@ public enum CacheCatalog {
 
     private static func resolve(_ measured: [CacheItem], sizes: [String: SizeInfo], runningNames: Set<String>) -> [CacheItem] {
         var items = measured
+        let baselines = CleanBaselines.load()
         for index in items.indices {
             var item = items[index]
             if !item.paths.isEmpty {
@@ -215,6 +216,7 @@ public enum CacheCatalog {
             if item.id == "pnpm-store" {
                 item.size.isEstimate = true
             }
+            item = CleanBaselines.adjusted(item, baselines: baselines)
             if let app = item.quitApp, runningNames.contains(app) {
                 item.blockedReason = "Quit \(app) first"
             }

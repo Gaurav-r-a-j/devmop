@@ -340,7 +340,8 @@ final class AppModel {
                 .map(id(for:))
         }
         ids += result.caches.filter { $0.tier == .safe && $0.group.isDeveloper }.map(id(for:))
-        return ids.filter(isSelectable)
+        // Leftovers too small to matter would only add noise to the review.
+        return ids.filter { isSelectable($0) && (targets[$0]?.bytes ?? 0) >= 20_000_000 }
     }
 
     var recommendedBytes: Int64 {
@@ -426,6 +427,7 @@ final class AppModel {
         guard var updated = result else { return }
         for index in updated.caches.indices where items.contains(where: { $0.id == updated.caches[index].id }) {
             updated.caches[index].size = updated.caches[index].paths.compactMap { sizes[$0] }.reduce(.zero, +)
+            updated.caches[index] = CleanBaselines.adjusted(updated.caches[index])
         }
         updated.caches.removeAll { $0.group != .trash && $0.size.allocated == 0 }
         Self.setTrash(sizes[SystemInfo.trashPath], in: &updated)

@@ -289,6 +289,8 @@ public struct CacheItem: Identifiable, Codable, Hashable, Sendable {
     public var blockedReason: String?
     /// App that must be quit before cleaning (process name).
     public let quitApp: String?
+    /// When this cache was last cleaned with its own tool; sizes then count only what was added since.
+    public var lastCleaned: Date? = nil
 
     public init(id: String, name: String, group: CacheGroup, symbol: String, detail: String, paths: [String], tier: SafetyTier, method: CleanMethod, fallback: CleanMethod? = nil, size: SizeInfo = .zero, toolPath: String? = nil, blockedReason: String? = nil, quitApp: String? = nil) {
         self.id = id

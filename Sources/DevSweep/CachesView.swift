@@ -126,8 +126,17 @@ struct CacheRow: View {
             }
             Spacer(minLength: 12)
             VStack(alignment: .trailing, spacing: 2) {
-                SizeText(bytes: item.size.reclaimable, isEstimate: item.size.isEstimate)
-                    .fontWeight(.medium)
+                if let cleaned = item.lastCleaned {
+                    Text(item.size.reclaimable > 0 ? formatBytes(item.size.reclaimable) : "Nothing new")
+                        .fontWeight(.medium)
+                        .monospacedDigit()
+                    Text("Cleaned \(relativeDate(cleaned))")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                } else {
+                    SizeText(bytes: item.size.reclaimable, isEstimate: item.size.isEstimate)
+                        .fontWeight(.medium)
+                }
                 if let path = item.paths.first {
                     Button {
                         model.revealInFinder(path)

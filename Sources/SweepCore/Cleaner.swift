@@ -306,8 +306,9 @@ public enum Cleaner {
                 if item.paths.isEmpty {
                     return done(freed: max(0, SystemInfo.plainAvailable() - freeBefore))
                 }
-                let after = DirectorySizer.size(of: item.paths).reclaimable
-                return done(freed: max(0, before - after))
+                let afterSize = DirectorySizer.size(of: item.paths)
+                CleanBaselines.record(item.id, bytes: afterSize.allocated)
+                return done(freed: max(0, before - afterSize.reclaimable))
             case .deleteContents:
                 var children: [String] = []
                 for path in item.paths {
