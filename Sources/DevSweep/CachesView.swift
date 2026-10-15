@@ -6,7 +6,7 @@ struct CachesView: View {
 
     var body: some View {
         if let result = model.result {
-            let groups = CacheGroup.allCases.compactMap { group -> (CacheGroup, [CacheItem])? in
+            let groups = CacheGroup.allCases.filter { $0 != .trash }.compactMap { group -> (CacheGroup, [CacheItem])? in
                 let items = result.caches.filter { $0.group == group }.sorted { $0.size.reclaimable > $1.size.reclaimable }
                 return items.isEmpty && group != .docker ? nil : (group, items)
             }

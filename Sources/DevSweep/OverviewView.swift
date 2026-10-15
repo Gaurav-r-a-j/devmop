@@ -126,7 +126,8 @@ struct OverviewView: View {
         case .simulators:
             return "\(result.simulators.count) devices · \(result.runtimes.count) runtimes"
         case .trash:
-            return result.trashBytes > 0 ? "Empty it from DevSweep" : "Empty"
+            guard model.hasFullDiskAccess else { return "Needs Full Disk Access" }
+            return result.trashBytes > 0 ? "Review and empty it" : "Empty"
         case .docker:
             switch result.dockerRunning {
             case .some(true): return "Images and build cache"

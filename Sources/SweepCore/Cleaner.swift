@@ -152,6 +152,28 @@ public enum Cleaner {
         return (removed, freed, skipped)
     }
 
+    /// Permanently deletes items from the Trash and records the run in History.
+    public static func deleteFromTrash(_ entries: [TrashEntry]) async -> CleanReport {
+        let before = SystemInfo.disk()?.available ?? 0
+        var report = CleanReport(date: Date(), mode: .permanent, outcomes: [], diskFreedBytes: 0)
+        let trash = SystemInfo.trashPath
+        for entry in entries {
+            let path = (entry.path as NSString).standardizingPath
+            guard path.isInside(trash), path != trash else { continue }
+            let result = await offload { Remover.remove(path) }
+            let removedSomething = result.freed > 0 || result.skipped == 0
+            report.outcomes.append(CleanOutcome(
+                targetID: "trash:\(path)", title: "Trash › \(entry.name)", path: path, bytes: result.freed,
+                succeeded: removedSomething,
+                message: result.skipped > 0 ? "Left \(result.skipped) read-only or protected \(result.skipped == 1 ? "item" : "items") in place" : nil,
+                rebuildHint: nil, trashedPaths: [], freedBytes: result.freed, trashedBytes: 0, skippedItems: result.skipped
+            ))
+        }
+        report.diskFreedBytes = max(0, (SystemInfo.disk()?.available ?? 0) - before)
+        History.append(report)
+        return report
+    }
+
     /// Cleans folder targets before commands so nested selections are skipped cleanly.
     private static func ordered(_ targets: [CleanTarget]) -> [CleanTarget] {
         let worktrees = targets.compactMap { target -> String? in

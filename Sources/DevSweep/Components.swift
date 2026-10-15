@@ -119,7 +119,8 @@ enum Category: String, CaseIterable, Identifiable {
     var section: SidebarSection {
         switch self {
         case .projects: .projects
-        case .caches, .docker, .trash: .caches
+        case .caches, .docker: .caches
+        case .trash: .trash
         case .simulators: .simulators
         }
     }
@@ -190,7 +191,7 @@ struct BreakdownItem: Identifiable {
         items.append(BreakdownItem(id: "sim-devices", title: "Simulator devices", bytes: devices, color: rgb(255, 159, 10), section: .simulators))
         items.append(BreakdownItem(id: "sim-runtimes", title: "Simulator runtimes", bytes: runtimes, color: rgb(255, 204, 0), section: .simulators))
         items.append(BreakdownItem(id: "docker", title: "Docker", bytes: result.dockerBytes, color: rgb(50, 173, 230), section: .caches))
-        items.append(BreakdownItem(id: "trash", title: "Trash", bytes: result.trashBytes, color: rgb(172, 142, 104), section: .caches))
+        items.append(BreakdownItem(id: "trash", title: "Trash", bytes: result.trashBytes, color: rgb(172, 142, 104), section: .trash))
 
         if let disk = result.disk {
             let other = max(0, disk.used - result.totalReclaimable)

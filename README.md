@@ -18,7 +18,13 @@ macOS 14 or later. Building needs Xcode 16 or later (Swift 6).
 open build/DevSweep.app
 ```
 
-Give DevSweep **Full Disk Access** (System Settings › Privacy & Security) so it can measure caches inside `~/Library`.
+Or install it to `/Applications` and open it:
+
+```sh
+./scripts/install.sh
+```
+
+Give DevSweep **Full Disk Access** (System Settings › Privacy & Security) so it can measure caches inside `~/Library` and show the Trash. Local builds are ad-hoc signed, so macOS asks again after each new build; a Developer ID build keeps the permission.
 
 ## Command line
 

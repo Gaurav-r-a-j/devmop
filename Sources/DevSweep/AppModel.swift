@@ -4,7 +4,7 @@ import Observation
 import SweepCore
 
 enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
-    case overview, projects, caches, simulators, history
+    case overview, projects, caches, simulators, trash, history
 
     var id: String { rawValue }
 
@@ -14,6 +14,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "Projects"
         case .caches: "Caches"
         case .simulators: "Simulators"
+        case .trash: "Trash"
         case .history: "History"
         }
     }
@@ -24,6 +25,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "folder"
         case .caches: "archivebox"
         case .simulators: "iphone.gen3"
+        case .trash: "trash"
         case .history: "clock.arrow.circlepath"
         }
     }
@@ -55,6 +57,9 @@ final class AppModel {
     private var activationObserver: NSObjectProtocol?
     private var dataVersion = 0
     private var rescanRequested = false
+
+    private(set) var trashEntries: [TrashEntry]?
+    private(set) var isLoadingTrash = false
 
     var selection: Set<String> = []
     var focusedProject: Project.ID?
@@ -350,6 +355,37 @@ final class AppModel {
             item.size = size
             result.caches.append(item)
         }
+    }
+
+    // MARK: Trash
+
+    func loadTrash() async {
+        guard !isLoadingTrash else { return }
+        isLoadingTrash = true
+        let entries = await TrashInspector.entries()
+        trashEntries = entries
+        isLoadingTrash = false
+        if let entries, var updated = result {
+            let total = entries.reduce(SizeInfo.zero) { $0 + $1.size }
+            Self.setTrash(total, in: &updated)
+            result = updated
+            saveCache()
+        }
+    }
+
+    func deleteFromTrash(_ entries: [TrashEntry]) async -> CleanReport {
+        let report = await Cleaner.deleteFromTrash(entries)
+        history = History.load()
+        await loadTrash()
+        if var updated = result {
+            updated.disk = SystemInfo.disk() ?? updated.disk
+            result = updated
+        }
+        return report
+    }
+
+    func openTrashInFinder() {
+        NSWorkspace.shared.open(URL(fileURLWithPath: SystemInfo.trashPath))
     }
 
     // MARK: Helpers

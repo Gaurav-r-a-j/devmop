@@ -185,4 +185,19 @@ import Testing
             #expect(fx.exists("app/node_modules/ro/keep.js"))
         }
     }
+
+    @Test func deleteFromTrashIgnoresPathsOutsideTrash() async {
+        let fx = Fixture()
+        let outside = fx.file("keep/important.txt", bytes: 5_000)
+        await withHistory(fx) {
+            let entries = [
+                TrashEntry(path: outside, name: "important.txt", isFolder: false, size: .zero, dateAdded: nil),
+                TrashEntry(path: SystemInfo.trashPath, name: ".Trash", isFolder: true, size: .zero, dateAdded: nil),
+                TrashEntry(path: SystemInfo.trashPath + "/../Documents", name: "Documents", isFolder: true, size: .zero, dateAdded: nil),
+            ]
+            let report = await Cleaner.deleteFromTrash(entries)
+            #expect(report.outcomes.isEmpty)
+        }
+        #expect(fx.exists("keep/important.txt"))
+    }
 }

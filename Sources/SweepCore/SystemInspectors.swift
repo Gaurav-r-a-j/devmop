@@ -171,3 +171,35 @@ public enum SystemInfo {
 
     public static var trashPath: String { "\(NSHomeDirectory())/.Trash" }
 }
+
+public struct TrashEntry: Identifiable, Hashable, Sendable {
+    public var id: String { path }
+    public let path: String
+    public let name: String
+    public let isFolder: Bool
+    public let size: SizeInfo
+    public let dateAdded: Date?
+}
+
+public enum TrashInspector {
+    /// Items in your Trash, largest first, or nil when macOS doesn't let DevSweep read it.
+    public static func entries() async -> [TrashEntry]? {
+        let trash = SystemInfo.trashPath
+        guard let names = try? FileManager.default.contentsOfDirectory(atPath: trash) else { return nil }
+        let paths = names.filter { $0 != ".DS_Store" && $0 != ".localized" }.map { trash + "/" + $0 }
+        let sizes = await DirectorySizer.sizes(of: paths)
+
+        return paths.map { path in
+            let url = URL(fileURLWithPath: path)
+            let values = try? url.resourceValues(forKeys: [.isDirectoryKey, .isPackageKey, .addedToDirectoryDateKey])
+            return TrashEntry(
+                path: path,
+                name: url.lastPathComponent,
+                isFolder: (values?.isDirectory ?? false) && !(values?.isPackage ?? false),
+                size: sizes[path] ?? .zero,
+                dateAdded: values?.addedToDirectoryDate
+            )
+        }
+        .sorted { $0.size.allocated > $1.size.allocated }
+    }
+}
