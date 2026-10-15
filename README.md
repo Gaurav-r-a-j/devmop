@@ -1,65 +1,88 @@
 # DevSweep
 
-A native macOS app that finds the disk space developer tools waste — `node_modules`, build outputs, package-manager caches, Docker, Xcode simulators and stale git worktrees — and lets you clean it safely.
+A native macOS app that shows where your disk space goes and safely frees what you don't need — built first for developers, useful for every Mac.
 
-- **Project-aware.** Groups build folders by project and shows when you last worked on each, its git state, and whether something is running in it.
-- **Honest sizes.** Measures what deleting actually frees. pnpm and APFS clones share files, so a 2.4 GB `node_modules` may free only 48 MB; DevSweep shows the real number.
-- **Safe by design.** Never touches `.git`, source or `.env` files. Generic folders like `dist` and `build` only count when git ignores them. Worktrees are removable only when clean and fully merged. Everything goes to the Trash by default.
-- **Uses each tool's own cleaner** — `pnpm store prune`, `npm cache clean`, `docker builder prune`, `xcrun simctl delete` — instead of deleting their files directly.
+- **Developer clean-up:** `node_modules`, `.next`, `dist`, `target`, `.venv` and other build folders per project, package-manager caches (npm, pnpm, Yarn, Bun, Homebrew, CocoaPods, Gradle, Cargo, pip…), Xcode DerivedData, simulators and runtimes, Docker, AI models, old Node versions and obsolete editor extensions.
+- **System Data:** iPhone/iPad backups, Time Machine local snapshots, iOS update files, leftover macOS installers, logs, Mail attachment copies, app and browser caches, and iCloud Drive downloads that are already safe in iCloud.
+- **Your files:** large and old files, leftover installers and extracted archives in Downloads, and exact duplicates.
+- **Apps:** uninstall apps with their caches and settings, and remove data left behind by apps you already deleted.
+- **Storage Map:** every part of the disk — your folders, Library, Homebrew, macOS itself — with what it is and whether it can be cleaned.
 
-## Requirements
+## Install
 
-macOS 14 or later. Building needs Xcode 16 or later (Swift 6).
+Download the latest DMG from Releases, open it and drag DevSweep to Applications. Then give it **Full Disk Access** in System Settings › Privacy & Security, so it can measure Library, Mail, Photos and the Trash.
 
-## Build
-
-```sh
-./scripts/build-app.sh          # build/DevSweep.app and build/sweep (universal, ad-hoc signed)
-open build/DevSweep.app
-```
-
-Or install it to `/Applications` and open it:
+To build from source (macOS 14+, Xcode 16+):
 
 ```sh
-./scripts/install.sh
+make install      # build, install to /Applications and open
+make help         # every command
 ```
 
-Give DevSweep **Full Disk Access** (System Settings › Privacy & Security) so it can measure caches inside `~/Library` and show the Trash. Local builds are ad-hoc signed, so macOS asks again after each new build; a Developer ID build keeps the permission.
+## What DevSweep deletes — and never deletes
+
+Nothing is deleted until you review the list and confirm. Every item is checked again right before it's removed.
+
+| Tier | Meaning | Examples |
+|---|---|---|
+| Safe | Pure cache, recreated automatically | npm/pnpm/Yarn/Bun caches, DerivedData, `.turbo`, browser caches |
+| Rebuildable | Needs a reinstall, rebuild or download | `node_modules`, `.next`, `target`, `.venv`, simulators, iCloud downloads |
+| Review | May hold data; never selected for you | backups, Docker volumes, worktrees, AI models, your files, apps and their data |
+| Protected | Never offered | `.git`, source code, `.env`, your home and Library folders themselves, iCloud and Dropbox folders, macOS |
+
+- Folders like `dist` and `build` only count when git ignores them. Worktrees are removable only when clean and fully merged.
+- Your files and apps always go to the Trash. The last copy of a duplicate is always kept.
+- Read-only, locked or other users' files are left in place and reported.
+- Projects with a running dev server, and apps that are open, are skipped.
+- Tools are cleaned with their own commands (`pnpm store prune`, `docker builder prune`, `xcrun simctl delete`), run from an empty folder.
+
+## Privacy
+
+Nothing leaves your Mac. DevSweep has no analytics, no accounts and makes no network requests. See [PRIVACY.md](PRIVACY.md).
+
+## Uninstall DevSweep
+
+1. Quit it from the menu bar icon.
+2. Turn off **Open at login** in its Settings, and remove it from Full Disk Access.
+3. Move DevSweep to the Trash, then remove its data:
+
+```sh
+rm -rf ~/Library/Application\ Support/DevSweep
+defaults delete app.devsweep.DevSweep
+```
 
 ## Command line
 
 ```sh
-build/sweep scan                         # report, nothing is deleted
-build/sweep scan --root ~/code --json    # one folder, machine-readable
-build/sweep clean --inactive 90          # show what would be cleaned
+make cli
+build/sweep scan                                 # report, nothing is deleted
+build/sweep clean --inactive 90                  # show what would be cleaned
 build/sweep clean --inactive 90 --caches --yes   # clean it (to the Trash)
 ```
-
-## Safety tiers
-
-| Tier | Meaning | Examples |
-|---|---|---|
-| Safe | Pure cache, recreated automatically | npm/pnpm/yarn/bun caches, DerivedData, `.turbo` |
-| Rebuildable | Needs a reinstall or rebuild | `node_modules`, `.next`, `target`, `.venv`, simulators |
-| Review | May hold data; never preselected | Docker volumes, Android emulators, worktrees, Xcode archives |
-| Protected | Never offered | `.git`, source files, `.env`, iCloud Drive |
 
 ## Development
 
 ```sh
-swift build
-swift test                # 59 tests; fixtures live in temp folders only
+make build        # compile
+make test         # 100+ tests; fixtures live in temp folders only
+make run          # build the app and open it from build/
+make icon         # preview the generated app icon
 ```
 
 Layout: `Sources/SweepCore` (scanner, rules, safety checks, cleaner), `Sources/sweep` (CLI), `Sources/DevSweep` (SwiftUI app), `Tests/SweepCoreTests`.
 
 ## Releasing
 
+One-time setup with an Apple Developer account:
+
 ```sh
-SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" VERSION=1.0.0 ./scripts/build-app.sh
-ditto -c -k --keepParent build/DevSweep.app build/DevSweep.zip
-xcrun notarytool submit build/DevSweep.zip --keychain-profile notary --wait
-xcrun stapler staple build/DevSweep.app
+xcrun notarytool store-credentials devsweep-notary --apple-id you@example.com --team-id TEAMID
 ```
 
-Notarization needs an Apple Developer account. The app can't ship on the Mac App Store because the sandbox blocks the folder access it needs.
+Each release:
+
+```sh
+SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make release VERSION=1.0.0
+```
+
+This runs the tests, builds a universal app with Hardened Runtime, notarizes and staples the app and the DMG, checks them with Gatekeeper, archives the dSYMs, and prints the DMG's SHA-256. DevSweep can't ship on the Mac App Store because the sandbox blocks the folder access a cleaner needs.
