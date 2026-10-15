@@ -44,10 +44,19 @@ cat > "$APP/Contents/Info.plist" <<PLIST
 </plist>
 PLIST
 
+LOCAL_IDENTITY="$(security find-identity -p codesigning 2>/dev/null | awk '/"DevSweep Local Signing"/ { print $2; exit }')"
 if [[ -n "${SIGN_IDENTITY:-}" ]]; then
     codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "build/sweep"
     codesign --force --options runtime --timestamp --sign "$SIGN_IDENTITY" "$APP"
+elif [[ -n "$LOCAL_IDENTITY" ]] && codesign --force --sign "$LOCAL_IDENTITY" "build/sweep" 2>/dev/null; then
+    # A stable identity keeps Full Disk Access granted across rebuilds.
+    codesign --force --sign "$LOCAL_IDENTITY" "$APP"
+elif [[ -n "$LOCAL_IDENTITY" ]]; then
+    echo "Note: macOS blocked access to the DevSweep Local Signing key. Run this script once in Terminal and choose Always Allow."
+    codesign --force --sign - "build/sweep"
+    codesign --force --sign - "$APP"
 else
+    echo "Note: run scripts/make-signing-identity.sh once so permissions survive rebuilds."
     codesign --force --sign - "build/sweep"
     codesign --force --sign - "$APP"
 fi

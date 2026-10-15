@@ -51,6 +51,8 @@ final class AppModel {
     private(set) var history: [CleanReport] = History.load()
     private(set) var targets: [String: CleanTarget] = [:]
 
+    private(set) var hasFullDiskAccess = SystemInfo.hasFullDiskAccess()
+    private var activationObserver: NSObjectProtocol?
     private var dataVersion = 0
     private var rescanRequested = false
 
@@ -73,6 +75,21 @@ final class AppModel {
         weeklyScan = UserDefaults.standard.object(forKey: Keys.weeklyScan) as? Bool ?? true
         result = ScanCache.load()
         rebuildTargets()
+        activationObserver = NotificationCenter.default.addObserver(
+            forName: NSApplication.didBecomeActiveNotification, object: nil, queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in self?.refreshFullDiskAccess() }
+        }
+    }
+
+    /// Re-checks Full Disk Access live; when it was just granted, rescans so Library folders get measured.
+    func refreshFullDiskAccess() {
+        let granted = SystemInfo.hasFullDiskAccess()
+        let newlyGranted = granted && !hasFullDiskAccess
+        hasFullDiskAccess = granted
+        if newlyGranted, result != nil {
+            Task { await scan() }
+        }
     }
 
     private func saveSettings() {

@@ -69,7 +69,7 @@ struct SettingsView: View {
             Form {
                 Section {
                     LabeledContent("Full Disk Access") {
-                        if SystemInfo.hasFullDiskAccess() {
+                        if model.hasFullDiskAccess {
                             Label("Allowed", systemImage: "checkmark.circle.fill").foregroundStyle(.green)
                         } else {
                             Button("Open System Settings") { model.openFullDiskAccessSettings() }

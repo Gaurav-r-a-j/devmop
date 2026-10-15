@@ -89,10 +89,10 @@ struct OverviewView: View {
     @ViewBuilder
     private func notices(_ result: ScanResult) -> some View {
         VStack(spacing: 10) {
-            if !result.hasFullDiskAccess {
+            if !model.hasFullDiskAccess {
                 Notice(symbol: "lock.shield", color: .orange,
                        title: "Allow Full Disk Access",
-                       message: "Some Library folders can't be measured. DevSweep never reads your documents or messages.",
+                       message: "Some Library folders can't be measured. Turn DevSweep on in the list, then come back here. DevSweep never reads your documents or messages.",
                        actionTitle: "Open Settings") { model.openFullDiskAccessSettings() }
             }
             if result.dockerRunning == false {
