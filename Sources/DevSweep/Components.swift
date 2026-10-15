@@ -74,6 +74,7 @@ extension CacheGroup {
         case .trash: .brown
         case .system: .gray
         case .browsers: .orange
+        case .aiModels: .pink
         }
     }
 }
@@ -185,6 +186,7 @@ struct BreakdownItem: Identifiable {
         .languages: rgb(204, 120, 240),
         .editors: rgb(218, 150, 250),
         .testing: rgb(232, 185, 255),
+        .aiModels: rgb(160, 60, 200),
     ]
 
     private static let sliceStyle: [StorageSlice.Kind: (title: String, color: Color)] = [

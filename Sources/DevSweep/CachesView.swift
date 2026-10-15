@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import SweepCore
 
@@ -39,6 +40,12 @@ struct CachesView: View {
                         }
                     }
                     .padding(.vertical, 8)
+                }
+
+                if scope == .system {
+                    Section("What else is in System Data") {
+                        SystemDataGuide()
+                    }
                 }
 
                 if scope == .system, !model.hasFullDiskAccess {
@@ -278,6 +285,53 @@ struct HistoryRow: View {
                 }
                 Spacer()
                 SizeText(bytes: report.cleanedBytes).fontWeight(.semibold)
+            }
+            .padding(.vertical, 4)
+        }
+    }
+}
+
+/// Explains the parts of System Data DevSweep can't or shouldn't delete, with shortcuts to where macOS manages them.
+struct SystemDataGuide: View {
+    private struct Tip: Identifiable {
+        let id: String
+        let symbol: String
+        let title: String
+        let detail: String
+        var action: (title: String, url: String)?
+    }
+
+    private let tips: [Tip] = [
+        Tip(id: "storage", symbol: "internaldrive", title: "macOS Storage settings",
+            detail: "macOS's own recommendations, like emptying the Trash automatically and storing files in iCloud.",
+            action: ("Open", "x-apple.systempreferences:com.apple.settings.Storage")),
+        Tip(id: "photos", symbol: "photo.on.rectangle", title: "Photos library",
+            detail: "In Photos › Settings › iCloud, choose Optimize Mac Storage to keep full-size photos only in iCloud.",
+            action: ("Open Photos", "file:///System/Applications/Photos.app")),
+        Tip(id: "messages", symbol: "message", title: "Messages attachments",
+            detail: "In Messages › Settings › General, set Keep messages to 1 year so old attachments are removed for you.",
+            action: ("Open Messages", "file:///System/Applications/Messages.app")),
+        Tip(id: "docker", symbol: "shippingbox", title: "Docker disk image",
+            detail: "Docker keeps a virtual disk that doesn't shrink right away after pruning. Docker Desktop › Settings › Resources lets you lower its size limit."),
+        Tip(id: "system", symbol: "lock", title: "Left alone on purpose",
+            detail: "macOS itself, swap and sleep files, the Spotlight index and purgeable space are managed by macOS and need no cleaning."),
+    ]
+
+    var body: some View {
+        ForEach(tips) { tip in
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: tip.symbol)
+                    .font(.title3)
+                    .foregroundStyle(.secondary)
+                    .frame(width: 28)
+                VStack(alignment: .leading, spacing: 2) {
+                    Text(tip.title).fontWeight(.medium)
+                    Text(tip.detail).font(.callout).foregroundStyle(.secondary).fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer()
+                if let action = tip.action, let url = URL(string: action.url) {
+                    Button(action.title) { NSWorkspace.shared.open(url) }
+                }
             }
             .padding(.vertical, 4)
         }

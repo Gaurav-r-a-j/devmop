@@ -36,6 +36,7 @@ enum SystemData {
             ))
         }
 
+        if let icloud = ICloudDownloads.item(home: home) { items.append(icloud) }
         items += browserCaches(library: library)
 
         let covered = coveredCacheNames.union(browserFolderNames)

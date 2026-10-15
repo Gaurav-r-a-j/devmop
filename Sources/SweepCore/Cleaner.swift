@@ -104,8 +104,10 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
         case .artifact(let artifact, _): return artifact.kind == .folder
         case .cache(let item):
             if item.id == CacheCatalog.trashID { return false }
-            if case .command = item.effectiveMethod { return false }
-            return true
+            switch item.effectiveMethod {
+            case .command, .evictDownloads: return false
+            default: return true
+            }
         case .simulator, .runtime: return false
         case .file, .app, .appData, .orphan: return true
         }
@@ -284,6 +286,24 @@ public enum Cleaner {
                 guard !item.paths.isEmpty else { return failed("Already gone") }
                 let removal = remove(item.paths, mode: effectiveMode)
                 return done(freed: removal.freed, trashed: removal.trashed, paths: removal.trashedPaths, skipped: removal.skipped)
+            case .evictDownloads:
+                guard !item.paths.isEmpty else { return failed("Nothing left to remove") }
+                var freed: Int64 = 0
+                var skipped = 0
+                for path in item.paths {
+                    if ICloudDownloads.recheck(path) != nil {
+                        skipped += 1
+                        continue
+                    }
+                    let before = DirectorySizer.size(of: path).allocated
+                    do {
+                        try FileManager.default.evictUbiquitousItem(at: URL(fileURLWithPath: path))
+                        freed += before
+                    } catch {
+                        skipped += 1
+                    }
+                }
+                return done(freed: freed, skipped: skipped)
             case nil:
                 return failed("Tool not installed")
             }

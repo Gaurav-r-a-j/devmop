@@ -111,7 +111,7 @@ public enum CacheCatalog {
         let covered = Set(developer.flatMap(\.paths).filter { $0.hasPrefix(caches) }.compactMap {
             $0.dropFirst(caches.count).split(separator: "/").first.map(String.init)
         })
-        return developer + SystemData.definitions(home: home, coveredCacheNames: covered)
+        return developer + DeveloperExtras.definitions(home: home) + SystemData.definitions(home: home, coveredCacheNames: covered)
     }
 
     public static let trashID = "trash"

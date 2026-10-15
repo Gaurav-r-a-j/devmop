@@ -232,6 +232,8 @@ public enum CleanMethod: Codable, Hashable, Sendable {
     case deleteContents
     /// Deletes each path itself.
     case deletePaths
+    /// Removes the downloaded copy of iCloud files; they stay in iCloud.
+    case evictDownloads
 }
 
 public enum CacheGroup: String, Codable, CaseIterable, Sendable {
@@ -244,6 +246,7 @@ public enum CacheGroup: String, Codable, CaseIterable, Sendable {
     case trash
     case system
     case browsers
+    case aiModels
 
     public var title: String {
         switch self {
@@ -256,6 +259,7 @@ public enum CacheGroup: String, Codable, CaseIterable, Sendable {
         case .trash: "Trash"
         case .system: "Mac system data"
         case .browsers: "Browser caches"
+        case .aiModels: "AI models"
         }
     }
 }
@@ -264,7 +268,7 @@ extension CacheGroup {
     /// Groups shown on the developer Caches screen.
     public var isDeveloper: Bool {
         switch self {
-        case .packageManagers, .apple, .languages, .editors, .testing: true
+        case .packageManagers, .apple, .languages, .editors, .testing, .aiModels: true
         case .docker, .trash, .system, .browsers: false
         }
     }
@@ -318,6 +322,8 @@ public struct CacheItem: Identifiable, Codable, Hashable, Sendable {
             return "Empties the folder"
         case .deletePaths:
             return paths.count == 1 ? "Deletes the folder" : "Deletes \(paths.count) folders"
+        case .evictDownloads:
+            return "Removes the download, keeps it in iCloud"
         case nil:
             return "Tool not installed"
         }
