@@ -134,6 +134,13 @@ func printReport(_ result: ScanResult, options: Options) {
         }
     }
 
+    if let storage = result.storage {
+        print("\n\(bold)WHERE THE REST GOES\(reset)")
+        for slice in storage.sorted(by: { $0.size.allocated > $1.size.allocated }) where slice.size.allocated > 0 {
+            print("\(pad(slice.kind.rawValue, 34))\(rpad(bytes(slice.size.allocated), 10))  \(dim)\(slice.paths.count) folders\(slice.size.unreadableCount > 0 ? ", some unreadable" : "")\(reset)")
+        }
+    }
+
     if let apps = result.apps, !apps.isEmpty {
         print("\n\(bold)APPS\(reset)  \(dim)\(apps.count) installed, \(result.orphans?.count ?? 0) with leftovers from deleted apps\(reset)")
         for app in apps.prefix(8) {

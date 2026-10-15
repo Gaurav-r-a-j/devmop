@@ -145,32 +145,60 @@ enum Category: String, CaseIterable, Identifiable {
 
 /// One coloured slice of the disk breakdown on the Overview.
 struct BreakdownItem: Identifiable {
+    enum Group: String, CaseIterable {
+        case cleanable, data, system
+
+        var title: String {
+            switch self {
+            case .cleanable: "Can be cleaned"
+            case .data: "Your data & apps"
+            case .system: "macOS & system"
+            }
+        }
+    }
+
     let id: String
     let title: String
     let bytes: Int64
     let color: Color
     let section: SidebarSection?
+    var group: Group = .cleanable
+    var revealPath: String?
 
     private static func rgb(_ red: Double, _ green: Double, _ blue: Double) -> Color {
         Color(red: red / 255, green: green / 255, blue: blue / 255)
     }
 
     private static let projectKinds: [(id: String, title: String, color: Color, rules: Set<String>)] = [
-        ("node-modules", "node_modules", rgb(10, 132, 255), ["node-modules"]),
-        ("framework-builds", "Framework builds (.next, dist…)", rgb(94, 92, 230),
+        ("node-modules", "node_modules", rgb(0, 122, 255), ["node-modules"]),
+        ("framework-builds", "Framework builds (.next, dist…)", rgb(64, 156, 255),
          ["next", "nuxt", "nuxt-output", "svelte-kit", "astro", "docusaurus", "expo", "storybook", "node-dist", "node-build", "node-out"]),
-        ("python-envs", "Python environments", rgb(48, 176, 199), ["venv", "venv-plain"]),
-        ("native-builds", "Native & JVM builds", rgb(100, 210, 255),
+        ("python-envs", "Python environments", rgb(100, 180, 255), ["venv", "venv-plain"]),
+        ("native-builds", "Native & JVM builds", rgb(140, 200, 255),
          ["rust-target", "maven-target", "swiftpm", "pods", "gradle-build", "dart-tool", "flutter-build", "elixir-build", "elixir-deps", "composer-vendor", "dotnet-bin", "dotnet-obj", "terraform"]),
-        ("project-caches", "Tool caches in projects (.turbo…)", rgb(90, 200, 250), []),
+        ("project-caches", "Tool caches in projects (.turbo…)", rgb(180, 220, 255), []),
     ]
 
     private static let cacheColors: [CacheGroup: Color] = [
-        .packageManagers: rgb(191, 90, 242),
-        .apple: rgb(255, 55, 95),
-        .languages: rgb(175, 82, 222),
-        .editors: rgb(218, 143, 255),
-        .testing: rgb(255, 105, 180),
+        .packageManagers: rgb(175, 82, 222),
+        .apple: rgb(191, 90, 242),
+        .languages: rgb(204, 120, 240),
+        .editors: rgb(218, 150, 250),
+        .testing: rgb(232, 185, 255),
+    ]
+
+    private static let sliceStyle: [StorageSlice.Kind: (title: String, color: Color)] = [
+        .documents: ("Documents", rgb(52, 199, 89)),
+        .desktop: ("Desktop", rgb(48, 176, 120)),
+        .downloads: ("Downloads", rgb(130, 200, 80)),
+        .pictures: ("Pictures & Photos", rgb(255, 204, 0)),
+        .movies: ("Movies", rgb(230, 170, 0)),
+        .music: ("Music", rgb(255, 224, 120)),
+        .iCloud: ("iCloud Drive (on this Mac)", rgb(0, 199, 190)),
+        .mail: ("Mail & Messages", rgb(102, 212, 207)),
+        .applications: ("Applications", rgb(88, 86, 214)),
+        .otherFolders: ("Other folders in your home", rgb(120, 190, 150)),
+        .developerTools: ("Developer tool folders (~/.*)", rgb(150, 150, 210)),
     ]
 
     static func breakdown(for result: ScanResult) -> [BreakdownItem] {
@@ -193,23 +221,41 @@ struct BreakdownItem: Identifiable {
                                        bytes: bytes, color: cacheColors[group] ?? .purple, section: .caches))
         }
 
+        let devices = result.simulators.reduce(0) { $0 + $1.size.reclaimable }
+        let runtimes = result.runtimes.filter(\.isDeletable).reduce(0) { $0 + $1.sizeBytes }
+        items.append(BreakdownItem(id: "sim-devices", title: "Simulator devices", bytes: devices, color: rgb(255, 149, 0), section: .simulators))
+        items.append(BreakdownItem(id: "sim-runtimes", title: "Simulator runtimes", bytes: runtimes, color: rgb(255, 184, 77), section: .simulators))
+        items.append(BreakdownItem(id: "docker", title: "Docker", bytes: result.dockerBytes, color: rgb(50, 173, 230), section: .caches))
+
         let backups = result.caches.filter { $0.id.hasPrefix("ios-backup:") }.reduce(0) { $0 + $1.size.reclaimable }
         let browsers = result.caches.filter { $0.group == .browsers }.reduce(0) { $0 + $1.size.reclaimable }
         let otherSystem = result.systemBytes - backups - browsers
-        items.append(BreakdownItem(id: "backups", title: "iPhone & iPad backups", bytes: backups, color: rgb(142, 142, 147), section: .systemData))
-        items.append(BreakdownItem(id: "browsers", title: "Browser caches", bytes: browsers, color: rgb(255, 120, 70), section: .systemData))
-        items.append(BreakdownItem(id: "system-other", title: "App caches, logs & installers", bytes: otherSystem, color: rgb(99, 99, 102), section: .systemData))
+        items.append(BreakdownItem(id: "backups", title: "iPhone & iPad backups", bytes: backups, color: rgb(255, 59, 48), section: .systemData))
+        items.append(BreakdownItem(id: "browsers", title: "Browser caches", bytes: browsers, color: rgb(255, 105, 97), section: .systemData))
+        items.append(BreakdownItem(id: "system-other", title: "App caches, logs & installers", bytes: otherSystem, color: rgb(255, 150, 140), section: .systemData))
+        items.append(BreakdownItem(id: "trash", title: "Trash", bytes: result.trashBytes, color: rgb(162, 132, 94), section: .trash))
 
-        let devices = result.simulators.reduce(0) { $0 + $1.size.reclaimable }
-        let runtimes = result.runtimes.filter(\.isDeletable).reduce(0) { $0 + $1.sizeBytes }
-        items.append(BreakdownItem(id: "sim-devices", title: "Simulator devices", bytes: devices, color: rgb(255, 159, 10), section: .simulators))
-        items.append(BreakdownItem(id: "sim-runtimes", title: "Simulator runtimes", bytes: runtimes, color: rgb(255, 204, 0), section: .simulators))
-        items.append(BreakdownItem(id: "docker", title: "Docker", bytes: result.dockerBytes, color: rgb(50, 173, 230), section: .caches))
-        items.append(BreakdownItem(id: "trash", title: "Trash", bytes: result.trashBytes, color: rgb(172, 142, 104), section: .trash))
+        // Cleanable things that live inside your folders, subtracted so nothing is counted twice.
+        let cleanablePaths: [(path: String, bytes: Int64)] =
+            artifacts.map { ($0.path, $0.size.reclaimable) }
+            + result.caches.compactMap { item in item.paths.count == 1 ? (item.paths[0], item.size.reclaimable) : nil }
+        var dataTotal: Int64 = 0
+        for slice in result.storage ?? [] {
+            guard let style = sliceStyle[slice.kind] else { continue }
+            let overlap = cleanablePaths.filter { entry in slice.paths.contains { entry.path.isInside($0) } }.reduce(0) { $0 + $1.bytes }
+            let bytes = max(0, slice.size.allocated - overlap)
+            dataTotal += bytes
+            items.append(BreakdownItem(
+                id: "data-\(slice.kind.rawValue)", title: style.title, bytes: bytes, color: style.color,
+                section: slice.kind == .applications ? .apps : (slice.kind == .downloads ? .files : nil),
+                group: .data, revealPath: slice.paths.count == 1 ? slice.paths[0] : nil
+            ))
+        }
 
         if let disk = result.disk {
-            let other = max(0, disk.used - result.totalReclaimable)
-            items.append(BreakdownItem(id: "other", title: "Apps, documents & system", bytes: other, color: Color.gray.opacity(0.55), section: nil))
+            let rest = max(0, disk.used - result.totalReclaimable - dataTotal)
+            items.append(BreakdownItem(id: "macos", title: result.storage == nil ? "Apps, documents & system" : "macOS, Library & other system data",
+                                       bytes: rest, color: rgb(142, 142, 147), section: nil, group: .system))
         }
         return items.filter { $0.bytes > 0 }
     }

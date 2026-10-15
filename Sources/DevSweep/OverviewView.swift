@@ -1,3 +1,4 @@
+import AppKit
 import SwiftUI
 import SweepCore
 
@@ -35,20 +36,40 @@ struct OverviewView: View {
                 }
                 StorageBar(segments: StorageBar.segments(for: result), total: disk.total, height: 26, showsLegend: false)
 
-                LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 20, alignment: .top)], alignment: .leading, spacing: 4) {
-                    ForEach(items) { item in
-                        BreakdownRow(item: item, total: disk.total) {
-                            if let section = item.section { model.section = section }
+                ForEach(BreakdownItem.Group.allCases, id: \.self) { group in
+                    let rows = items.filter { $0.group == group }
+                    if !rows.isEmpty {
+                        VStack(alignment: .leading, spacing: 4) {
+                            HStack {
+                                Text(group.title).font(.subheadline.weight(.semibold))
+                                Spacer()
+                                Text(formatBytes(rows.reduce(0) { $0 + $1.bytes }))
+                                    .font(.subheadline.weight(.semibold))
+                                    .monospacedDigit()
+                                    .foregroundStyle(.secondary)
+                            }
+                            .padding(.horizontal, 8)
+                            LazyVGrid(columns: [GridItem(.adaptive(minimum: 260), spacing: 20, alignment: .top)], alignment: .leading, spacing: 2) {
+                                ForEach(rows.sorted { $0.bytes > $1.bytes }) { item in
+                                    BreakdownRow(item: item, total: disk.total, action: action(for: item))
+                                }
+                            }
                         }
                     }
-                    BreakdownRow(item: BreakdownItem(id: "free", title: "Available", bytes: disk.available,
-                                                     color: Color.secondary.opacity(0.18), section: nil),
-                                 total: disk.total, action: nil)
                 }
+                BreakdownRow(item: BreakdownItem(id: "free", title: "Available", bytes: disk.available,
+                                                 color: Color.secondary.opacity(0.18), section: nil),
+                             total: disk.total, action: nil)
             }
             .padding(20)
             .card()
         }
+    }
+
+    private func action(for item: BreakdownItem) -> (() -> Void)? {
+        if let section = item.section { return { model.section = section } }
+        if let path = item.revealPath { return { NSWorkspace.shared.open(URL(fileURLWithPath: path)) } }
+        return nil
     }
 
     private func hero(_ result: ScanResult) -> some View {
