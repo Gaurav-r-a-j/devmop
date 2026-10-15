@@ -71,7 +71,7 @@ public enum CleanTarget: Identifiable, Hashable, Sendable {
     }
 
     /// Whether deletion goes through the Trash (commands always delete directly).
-    func usesTrash(_ mode: DeleteMode) -> Bool {
+    public func usesTrash(_ mode: DeleteMode) -> Bool {
         guard mode == .trash else { return false }
         switch self {
         case .artifact(let artifact, _): return artifact.kind == .folder
