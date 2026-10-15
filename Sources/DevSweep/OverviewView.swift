@@ -57,9 +57,14 @@ struct OverviewView: View {
                         }
                     }
                 }
-                BreakdownRow(item: BreakdownItem(id: "free", title: "Available", bytes: disk.available,
-                                                 color: Color.secondary.opacity(0.18), section: nil),
-                             total: disk.total, action: nil)
+                HStack {
+                    BreakdownRow(item: BreakdownItem(id: "free", title: "Available", bytes: disk.available,
+                                                     color: Color.secondary.opacity(0.18), section: nil),
+                                 total: disk.total, action: nil)
+                    Spacer()
+                    Button("What is all this?") { model.section = .storageMap }
+                        .buttonStyle(.link)
+                }
             }
             .padding(20)
             .card()
@@ -305,7 +310,7 @@ struct BreakdownRow: View {
         .buttonStyle(.plain)
         .disabled(action == nil)
         .onHover { isHovered = $0 }
-        .help(action == nil ? "" : "Show in DevSweep")
+        .help(item.why.isEmpty ? "" : "\(item.status.title): \(item.why)")
     }
 
     private var percent: String {

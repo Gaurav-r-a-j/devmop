@@ -147,12 +147,13 @@ enum Category: String, CaseIterable, Identifiable {
 /// One coloured slice of the disk breakdown on the Overview.
 struct BreakdownItem: Identifiable {
     enum Group: String, CaseIterable {
-        case cleanable, data, system
+        case cleanable, data, library, system
 
         var title: String {
             switch self {
             case .cleanable: "Can be cleaned"
             case .data: "Your data & apps"
+            case .library: "Library (app data & caches)"
             case .system: "macOS & system"
             }
         }
@@ -165,6 +166,9 @@ struct BreakdownItem: Identifiable {
     let section: SidebarSection?
     var group: Group = .cleanable
     var revealPath: String?
+    var status: AreaStatus = .cleanable
+    var why: String = ""
+    var actionTitle: String?
 
     private static func rgb(_ red: Double, _ green: Double, _ blue: Double) -> Color {
         Color(red: red / 255, green: green / 255, blue: blue / 255)
@@ -187,20 +191,6 @@ struct BreakdownItem: Identifiable {
         .editors: rgb(218, 150, 250),
         .testing: rgb(232, 185, 255),
         .aiModels: rgb(160, 60, 200),
-    ]
-
-    private static let sliceStyle: [StorageSlice.Kind: (title: String, color: Color)] = [
-        .documents: ("Documents", rgb(52, 199, 89)),
-        .desktop: ("Desktop", rgb(48, 176, 120)),
-        .downloads: ("Downloads", rgb(130, 200, 80)),
-        .pictures: ("Pictures & Photos", rgb(255, 204, 0)),
-        .movies: ("Movies", rgb(230, 170, 0)),
-        .music: ("Music", rgb(255, 224, 120)),
-        .iCloud: ("iCloud Drive (on this Mac)", rgb(0, 199, 190)),
-        .mail: ("Mail & Messages", rgb(102, 212, 207)),
-        .applications: ("Applications", rgb(88, 86, 214)),
-        .otherFolders: ("Other folders in your home", rgb(120, 190, 150)),
-        .developerTools: ("Developer tool folders (~/.*)", rgb(150, 150, 210)),
     ]
 
     static func breakdown(for result: ScanResult) -> [BreakdownItem] {
@@ -237,27 +227,39 @@ struct BreakdownItem: Identifiable {
         items.append(BreakdownItem(id: "system-other", title: "App caches, logs & installers", bytes: otherSystem, color: rgb(255, 150, 140), section: .systemData))
         items.append(BreakdownItem(id: "trash", title: "Trash", bytes: result.trashBytes, color: rgb(162, 132, 94), section: .trash))
 
-        // Cleanable things that live inside your folders, subtracted so nothing is counted twice.
-        let cleanablePaths: [(path: String, bytes: Int64)] =
-            artifacts.map { ($0.path, $0.size.reclaimable) }
-            + result.caches.compactMap { item in item.paths.count == 1 ? (item.paths[0], item.size.reclaimable) : nil }
-        var dataTotal: Int64 = 0
+        for index in items.indices {
+            guard let section = items[index].section else { continue }
+            let info = AreaInfo.cleanable(section)
+            items[index].status = info.status
+            items[index].why = info.why
+        }
+
+        // Cleanable things inside measured folders are subtracted there, so nothing is counted twice.
+        var cleanablePaths: [(path: String, bytes: Int64)] = artifacts.map { ($0.path, $0.size.reclaimable) }
+        cleanablePaths += result.caches.compactMap { item in item.paths.first.map { ($0, item.size.reclaimable) } }
+        cleanablePaths += result.simulators.map { ($0.path, $0.size.reclaimable) }
+        cleanablePaths.append(("\(NSHomeDirectory())/Library/Containers/com.docker.docker", result.dockerBytes))
+
+        var measuredTotal: Int64 = 0
         for slice in result.storage ?? [] {
-            guard let style = sliceStyle[slice.kind] else { continue }
+            guard let info = AreaInfo.slices[slice.kind] else { continue }
             let overlap = cleanablePaths.filter { entry in slice.paths.contains { entry.path.isInside($0) } }.reduce(0) { $0 + $1.bytes }
             let bytes = max(0, slice.size.allocated - overlap)
-            dataTotal += bytes
+            measuredTotal += bytes
             items.append(BreakdownItem(
-                id: "data-\(slice.kind.rawValue)", title: style.title, bytes: bytes, color: style.color,
-                section: slice.kind == .applications ? .apps : (slice.kind == .downloads ? .files : nil),
-                group: .data, revealPath: slice.paths.count == 1 ? slice.paths[0] : nil
+                id: "area-\(slice.kind.rawValue)", title: info.title, bytes: bytes, color: info.color,
+                section: info.section, group: info.group, revealPath: slice.paths.count == 1 ? slice.paths[0] : nil,
+                status: info.status, why: info.why, actionTitle: info.actionTitle
             ))
         }
 
         if let disk = result.disk {
-            let rest = max(0, disk.used - result.totalReclaimable - dataTotal)
-            items.append(BreakdownItem(id: "macos", title: result.storage == nil ? "Apps, documents & system" : "macOS, Library & other system data",
-                                       bytes: rest, color: rgb(142, 142, 147), section: nil, group: .system))
+            let rest = max(0, disk.used - result.totalReclaimable - measuredTotal)
+            let info = result.storage == nil
+                ? AreaInfo(title: "Apps, documents & system", color: rgb(142, 142, 147), group: .system, status: .managed, why: "Scan again to see this split up.")
+                : AreaInfo.remainder
+            items.append(BreakdownItem(id: "area-remainder", title: info.title, bytes: rest, color: info.color, section: info.section,
+                                       group: info.group, status: info.status, why: info.why, actionTitle: info.actionTitle))
         }
         return items.filter { $0.bytes > 0 }
     }

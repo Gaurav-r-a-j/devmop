@@ -69,6 +69,7 @@ struct ContentView: View {
                     case .overview: OverviewView()
                     case .projects: ProjectsView()
                     case .caches: CachesView(scope: .developer)
+                    case .storageMap: StorageMapView()
                     case .systemData: CachesView(scope: .system)
                     case .files: FilesView()
                     case .apps: AppsView()
@@ -163,7 +164,7 @@ struct SidebarView: View {
         case .simulators: bytes = result.simulatorBytes
         case .trash: bytes = result.trashBytes
         case .systemData: bytes = result.systemBytes
-        case .files, .apps: return nil
+        case .files, .apps, .storageMap: return nil
         case .overview, .history: return nil
         }
         return bytes > 0 ? Text(formatBytes(bytes)) : nil

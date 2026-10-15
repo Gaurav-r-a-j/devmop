@@ -4,10 +4,10 @@ import Observation
 import SweepCore
 
 enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
-    case overview, projects, caches, simulators, systemData, files, apps, trash, history
+    case overview, projects, caches, simulators, storageMap, systemData, files, apps, trash, history
 
     static let developer: [SidebarSection] = [.projects, .caches, .simulators]
-    static let mac: [SidebarSection] = [.systemData, .files, .apps]
+    static let mac: [SidebarSection] = [.storageMap, .systemData, .files, .apps]
     static let general: [SidebarSection] = [.trash, .history]
 
     var id: String { rawValue }
@@ -18,6 +18,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "Projects"
         case .caches: "Caches"
         case .simulators: "Simulators"
+        case .storageMap: "Storage Map"
         case .systemData: "System Data"
         case .files: "Files"
         case .apps: "Apps"
@@ -32,6 +33,7 @@ enum SidebarSection: String, CaseIterable, Identifiable, Hashable {
         case .projects: "folder"
         case .caches: "archivebox"
         case .simulators: "iphone.gen3"
+        case .storageMap: "chart.bar.doc.horizontal"
         case .systemData: "internaldrive"
         case .files: "doc.on.doc"
         case .apps: "square.grid.2x2"

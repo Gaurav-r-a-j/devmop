@@ -14,6 +14,7 @@ public enum DirectorySizer {
         }
 
         var tally = Tally()
+        tally.device = st.st_dev
         var frontier = [path]
         for _ in 0..<3 where !frontier.isEmpty && frontier.count < fanOutTarget {
             var next: [String] = []
@@ -21,6 +22,10 @@ public enum DirectorySizer {
                 let fd = BulkDirectory.openDirectory(directory)
                 guard fd >= 0 else {
                     tally.unreadable += 1
+                    continue
+                }
+                guard onDevice(fd, tally.device) else {
+                    close(fd)
                     continue
                 }
                 list(fd: fd, tally: &tally) { next.append(directory + "/" + $0) }
@@ -32,17 +37,30 @@ public enum DirectorySizer {
         let lock = NSLock()
         DispatchQueue.concurrentPerform(iterations: frontier.count) { index in
             var local = Tally()
+            local.device = tally.device
             let fd = BulkDirectory.openDirectory(frontier[index])
-            if fd >= 0 {
+            if fd >= 0, onDevice(fd, local.device) {
                 walk(fd: fd, depth: 0, tally: &local)
                 close(fd)
-            } else {
+            } else if fd < 0 {
                 local.unreadable += 1
+            } else {
+                close(fd)
             }
             lock.lock()
             tally.merge(local)
             lock.unlock()
         }
+        return tally.result
+    }
+
+    /// Files directly inside a folder, without its subfolders.
+    static func shallowSize(of path: String) -> SizeInfo {
+        let fd = BulkDirectory.openDirectory(path)
+        guard fd >= 0 else { return SizeInfo(unreadableCount: 1) }
+        defer { close(fd) }
+        var tally = Tally()
+        list(fd: fd, tally: &tally) { _ in }
         return tally.result
     }
 
@@ -70,6 +88,7 @@ public enum DirectorySizer {
         var sawPrivateSize = false
         var missingPrivateSize = false
         var hardlinks: [UInt64: (seen: UInt32, links: UInt32, bytes: Int64)] = [:]
+        var device: dev_t = 0
 
         mutating func merge(_ other: Tally) {
             allocated += other.allocated
@@ -102,6 +121,12 @@ public enum DirectorySizer {
                 unreadableCount: unreadable
             )
         }
+    }
+
+    /// Stays on one volume, so mounted disk images aren't counted as part of a folder.
+    private static func onDevice(_ fd: Int32, _ device: dev_t) -> Bool {
+        var st = stat()
+        return fstat(fd, &st) == 0 && st.st_dev == device
     }
 
     private static func list(fd: Int32, tally: inout Tally, onDirectory: (String) -> Void) {
@@ -143,7 +168,9 @@ public enum DirectorySizer {
                 tally.unreadable += 1
                 continue
             }
-            walk(fd: child, depth: depth + 1, tally: &tally)
+            if onDevice(child, tally.device) {
+                walk(fd: child, depth: depth + 1, tally: &tally)
+            }
             close(child)
         }
     }
