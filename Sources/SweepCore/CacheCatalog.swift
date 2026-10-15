@@ -134,9 +134,9 @@ public enum CacheCatalog {
             ))
             items.append(CacheItem(
                 id: "\(editor.id)-orphans", name: "\(editor.name) data for deleted projects", group: .editors, symbol: "folder.badge.questionmark",
-                detail: "Workspace storage for folders that no longer exist.",
+                detail: "Workspace storage, such as local history and chats, for folders that no longer exist.",
                 paths: orphanedWorkspaceStorage(in: "\(support)/User/workspaceStorage"),
-                tier: .safe, method: .deletePaths
+                tier: .review, method: .deletePaths
             ))
         }
         return items
@@ -153,7 +153,7 @@ public enum CacheCatalog {
                   let target = (json["folder"] ?? json["workspace"]) as? String,
                   let url = URL(string: target), url.isFileURL
             else { continue }
-            if !FileManager.default.fileExists(atPath: url.path) {
+            if !FileManager.default.fileExists(atPath: url.path), !onMissingVolume(url.path) {
                 orphans.append(folder)
             }
         }
@@ -168,6 +168,13 @@ public enum CacheCatalog {
             item.toolPath = ToolLocator.find(tool)
         }
         return item
+    }
+
+    /// A project on an external drive that's simply unplugged isn't orphaned.
+    static func onMissingVolume(_ path: String) -> Bool {
+        let parts = path.split(separator: "/")
+        guard parts.count >= 2, parts[0] == "Volumes" else { return false }
+        return !FileManager.default.fileExists(atPath: "/Volumes/\(parts[1])")
     }
 
     /// Measures every cache and resolves the tools that clean them.

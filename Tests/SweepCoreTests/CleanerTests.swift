@@ -5,7 +5,11 @@ import Testing
 @Suite(.serialized) struct CleanerTests {
     private func withHistory<T>(_ fx: Fixture, _ body: () async throws -> T) async rethrows -> T {
         History.overrideDirectory = URL(fileURLWithPath: fx.dir("history"))
-        defer { History.overrideDirectory = nil }
+        TrashBin.overrideDirectory = URL(fileURLWithPath: fx.dir("test-trash"))
+        defer {
+            History.overrideDirectory = nil
+            TrashBin.overrideDirectory = nil
+        }
         return try await body()
     }
 
@@ -199,5 +203,54 @@ import Testing
             #expect(report.outcomes.isEmpty)
         }
         #expect(fx.exists("keep/important.txt"))
+    }
+
+    @Test func worktreeWithIgnoredSecretsGoesToTrashNotOblivion() async {
+        let fx = Fixture()
+        guard let (repo, worktree) = worktreeFixture(fx) else { return }
+        fx.write("repo/.gitignore", "node_modules/\n.env\n")
+        Git.commitAll(repo)
+        Git.run(["merge", "-q", "main"], in: worktree)
+        fx.write("wt/.env", "SECRET=1")
+        let tree = worktreeArtifact(worktree)
+        let report = await withHistory(fx) {
+            await Cleaner.clean([.artifact(tree, project: sampleProject(worktree, artifacts: [tree]))], mode: .permanent)
+        }
+        #expect(report.outcomes.first?.succeeded == true, "\(report.outcomes.first?.message ?? "")")
+        #expect(!fx.exists("wt"))
+        let trashed = report.trashedPaths.first ?? ""
+        #expect(FileManager.default.fileExists(atPath: trashed + "/.env"))
+        #expect(!Git.run(["worktree", "list"], in: repo).output.contains(worktree))
+    }
+
+    @Test func emptyFromTrashSkipsItemsThatWereReplaced() async {
+        let fx = Fixture()
+        await withHistory(fx) {
+            fx.write("app/package.json", "{}")
+            fx.file("app/node_modules/pkg/index.js", bytes: 10_000)
+            let artifact = folderArtifact(fx.path("app/node_modules"))
+            let report = await Cleaner.clean([.artifact(artifact, project: sampleProject(fx.path("app")))], mode: .trash)
+            guard let moved = report.trashedPaths.first else {
+                Issue.record("Expected the folder in the test Trash")
+                return
+            }
+            try? FileManager.default.removeItem(atPath: moved)
+            fx.write("test-trash/" + (moved as NSString).lastPathComponent + "/keep.txt", "someone else's")
+            let items = [(path: moved, identity: report.outcomes.first?.trashedIdentities?.first)]
+            let result = Cleaner.emptyFromTrash(items)
+            #expect(result.removed == 0)
+            #expect(FileManager.default.fileExists(atPath: moved + "/keep.txt"))
+        }
+    }
+
+    @Test func dockerContainersAreAlwaysPrunedLast() {
+        func docker(_ id: String) -> CleanTarget {
+            .cache(CacheItem(id: id, name: id, group: .docker, symbol: "", detail: "", paths: [], tier: .review,
+                             method: .command(tool: "docker", arguments: [])))
+        }
+        let app = InstalledApp(bundleID: "x.y.z", name: "Z", path: "/Applications/Z.app", version: nil, isAppStore: false,
+                               size: .zero, lastUsed: nil, leftovers: [])
+        let ordered = Cleaner.ordered([docker("docker-containers"), .app(app), docker("docker-volumes"), .appData(app), docker("docker-images")])
+        #expect(ordered.map(\.id) == ["appdata:/Applications/Z.app", "app:/Applications/Z.app", "cache:docker-volumes", "cache:docker-images", "cache:docker-containers"])
     }
 }

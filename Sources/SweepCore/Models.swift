@@ -427,7 +427,10 @@ public struct ScanResult: Codable, Sendable {
 
     public var projectBytes: Int64 { projects.reduce(0) { $0 + $1.reclaimable } }
     public var cacheBytes: Int64 { caches.filter { $0.group.isDeveloper }.reduce(0) { $0 + $1.size.reclaimable } }
-    public var systemBytes: Int64 { caches.filter { $0.group == .system || $0.group == .browsers }.reduce(0) { $0 + $1.size.reclaimable } }
+    /// Snapshot space is an estimate that overlaps iCloud downloads, so it's shown but not added to totals.
+    public var systemBytes: Int64 {
+        caches.filter { ($0.group == .system || $0.group == .browsers) && $0.id != "tm-snapshots" }.reduce(0) { $0 + $1.size.reclaimable }
+    }
     public var dockerBytes: Int64 { caches.filter { $0.group == .docker }.reduce(0) { $0 + $1.size.reclaimable } }
     public var trashBytes: Int64 { caches.filter { $0.group == .trash }.reduce(0) { $0 + $1.size.reclaimable } }
     public var simulatorBytes: Int64 {
@@ -469,14 +472,12 @@ public struct SweepSettings: Codable, Hashable, Sendable {
     public var excludedPaths: [String]
     public var inactiveDays: Int
     public var deleteMode: DeleteMode
-    public var includeExternalVolumes: Bool
 
-    public init(roots: [String] = [NSHomeDirectory()], excludedPaths: [String] = [], inactiveDays: Int = 60, deleteMode: DeleteMode = .trash, includeExternalVolumes: Bool = false) {
+    public init(roots: [String] = [NSHomeDirectory()], excludedPaths: [String] = [], inactiveDays: Int = 60, deleteMode: DeleteMode = .trash) {
         self.roots = roots
         self.excludedPaths = excludedPaths
         self.inactiveDays = inactiveDays
         self.deleteMode = deleteMode
-        self.includeExternalVolumes = includeExternalVolumes
     }
 }
 
@@ -498,7 +499,17 @@ extension String {
 
     public var abbreviatingHome: String { (self as NSString).abbreviatingWithTildeInPath }
 
+    /// Path containment, ignoring case as APFS does by default.
     public func isInside(_ ancestor: String) -> Bool {
-        self == ancestor || hasPrefix(ancestor.hasSuffix("/") ? ancestor : ancestor + "/")
+        let path = lowercased()
+        let base = ancestor.lowercased()
+        return path == base || path.hasPrefix(base.hasSuffix("/") ? base : base + "/")
+    }
+
+    /// The path with symlinks resolved, or the path itself when it doesn't exist.
+    public var resolvedPath: String {
+        guard let real = realpath(self, nil) else { return (self as NSString).standardizingPath }
+        defer { free(real) }
+        return String(cString: real)
     }
 }

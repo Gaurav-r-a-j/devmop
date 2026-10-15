@@ -386,8 +386,7 @@ final class AppModel {
 
     /// Permanently deletes what this cleanup moved to the Trash; returns bytes freed and items left in place.
     func emptyFromTrash(_ report: CleanReport) async -> (freed: Int64, skipped: Int) {
-        let paths = report.trashedPaths
-        let outcome = await Task.detached(priority: .userInitiated) { Cleaner.emptyFromTrash(paths) }.value
+        let outcome = await Task.detached(priority: .userInitiated) { Cleaner.emptyFromTrash(report) }.value
         let trash = await DirectorySizer.sizes(of: [SystemInfo.trashPath])
         guard var updated = result else { return (outcome.freed, outcome.skipped) }
         Self.setTrash(trash[SystemInfo.trashPath], in: &updated)

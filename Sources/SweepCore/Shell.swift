@@ -90,9 +90,12 @@ public enum Shell {
         var buffer = [UInt8](repeating: 0, count: 65_536)
 
         while true {
-            if !exited, waitpid(pid, &status, WNOHANG) == pid {
-                exited = true
-                exitedAt = Date()
+            if !exited {
+                let waited = waitpid(pid, &status, WNOHANG)
+                if waited == pid || (waited == -1 && errno != EINTR) {
+                    exited = true
+                    exitedAt = Date()
+                }
             }
             let readable = open.filter(\.value).map(\.key)
             if exited, readable.isEmpty { break }
@@ -130,6 +133,12 @@ public enum Shell {
             }
         }
 
+        if !exited {
+            kill(-pid, SIGKILL)
+            kill(pid, SIGKILL)
+            while waitpid(pid, &status, 0) == -1 && errno == EINTR {}
+            exited = true
+        }
         let complete = !open.values.contains(true)
         close(out)
         close(err)

@@ -253,8 +253,10 @@ public enum UserFiles {
     /// Checks a file right before it goes to the Trash.
     static func recheck(_ file: UserFile, home: String = NSHomeDirectory()) -> String? {
         let path = file.path
-        guard path.hasPrefix("/"), !path.split(separator: "/").contains(".."),
-              path.isInside(home), !path.isInside("\(home)/Library")
+        let components = path.split(separator: "/")
+        guard path.hasPrefix("/"), !components.contains(".."),
+              folders(home: home).contains(where: { path.isInside($0) && path.resolvedPath.isInside($0.resolvedPath) }),
+              !components.dropFirst(home.split(separator: "/").count).contains(where: { $0.hasPrefix(".") })
         else { return "Outside your personal folders" }
         if let problem = Cleaner.unsafeLocation(path) { return problem }
         var st = stat()

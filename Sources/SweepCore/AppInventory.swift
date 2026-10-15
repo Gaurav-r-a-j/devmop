@@ -70,6 +70,11 @@ public enum AppInventory {
         ("Application Scripts", "Scripts", false),
     ]
 
+    /// Folders several apps from one company share, so they're never matched by an app's name.
+    static let sharedVendorFolders: Set<String> = [
+        "google", "microsoft", "adobe", "apple", "jetbrains", "mozilla", "autodesk", "oracle", "amazon", "facebook", "meta",
+    ]
+
     public static func appFolders(home: String = NSHomeDirectory()) -> [String] {
         ["/Applications", "\(home)/Applications"]
     }
@@ -190,6 +195,7 @@ public enum AppInventory {
                     || (location.folder == "LaunchAgents" && lowered.hasPrefix("\(id).") && lowered.hasSuffix(".plist"))
                     || (location.folder == "Group Containers" && lowered.hasSuffix(".\(id)"))
                 let matchesName = location.matchesName && appName.count >= 3 && lowered == appName
+                    && !sharedVendorFolders.contains(lowered)
                 guard matchesID || matchesName else { continue }
                 found.append(AppLeftover(path: "\(directory)/\(entry)", kind: location.kind, size: .zero))
             }

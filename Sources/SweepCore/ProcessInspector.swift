@@ -42,14 +42,16 @@ public enum ProcessInspector {
 
     static let shells: Set<String> = ["zsh", "bash", "fish", "sh", "dash", "tcsh", "nu", "login", "tmux", "screen", "-zsh", "-bash"]
 
-    /// The first non-shell process whose working folder is inside `path`.
+    /// The first non-shell process whose working folder is inside `path` (symlinks resolved, case ignored).
     public static func user(of path: String, among processes: [RunningProcess]) -> RunningProcess? {
-        processes.first { !shells.contains($0.name) && $0.workingDirectory.isInside(path) }
+        let resolved = path.resolvedPath
+        return processes.first { !shells.contains($0.name) && ($0.workingDirectory.isInside(resolved) || $0.workingDirectory.isInside(path)) }
     }
 
     /// A terminal shell whose working folder is inside `path`.
     public static func shell(in path: String, among processes: [RunningProcess]) -> RunningProcess? {
-        processes.first { shells.contains($0.name) && $0.workingDirectory.isInside(path) }
+        let resolved = path.resolvedPath
+        return processes.first { shells.contains($0.name) && ($0.workingDirectory.isInside(resolved) || $0.workingDirectory.isInside(path)) }
     }
 
     private static func name(of pid: pid_t) -> String {

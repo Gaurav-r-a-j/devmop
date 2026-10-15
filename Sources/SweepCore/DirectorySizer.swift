@@ -35,9 +35,10 @@ public enum DirectorySizer {
         }
 
         let lock = NSLock()
+        let device = tally.device
         DispatchQueue.concurrentPerform(iterations: frontier.count) { index in
             var local = Tally()
-            local.device = tally.device
+            local.device = device
             let fd = BulkDirectory.openDirectory(frontier[index])
             if fd >= 0, onDevice(fd, local.device) {
                 walk(fd: fd, depth: 0, tally: &local)

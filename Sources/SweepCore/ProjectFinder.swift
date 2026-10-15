@@ -18,7 +18,8 @@ struct ProjectDraft {
         hasLockfile = hasLockfile || other.hasLockfile
         isGitRoot = isGitRoot || other.isGitRoot
         isWorktree = isWorktree || other.isWorktree
-        candidates += other.candidates
+        let known = Set(candidates.map(\.path))
+        candidates += other.candidates.filter { !known.contains($0.path) }
     }
 }
 
@@ -35,7 +36,7 @@ struct ProjectFinder {
         var drafts: [String: ProjectDraft] = [:]
         let lock = NSLock()
 
-        for root in settings.roots.map(\.expandingTilde) {
+        for root in Self.distinctRoots(settings.roots.map(\.expandingTilde)) {
             guard !isExcluded(root) else { continue }
 
             var state = WalkState()
@@ -66,6 +67,17 @@ struct ProjectFinder {
             }
         }
         return Array(drafts.values)
+    }
+
+    /// Drops roots inside other roots, so nothing is walked or counted twice.
+    static func distinctRoots(_ roots: [String]) -> [String] {
+        let standardized = roots.map { $0.count > 1 && $0.hasSuffix("/") ? String($0.dropLast()) : $0 }
+        return standardized.enumerated().filter { index, root in
+            !standardized.enumerated().contains { other, candidate in
+                other != index && (root.isInside(candidate) && (root.lowercased() != candidate.lowercased() || other < index))
+            }
+        }
+        .map(\.element)
     }
 
     private func merge(_ source: [String: ProjectDraft], into target: inout [String: ProjectDraft]) {

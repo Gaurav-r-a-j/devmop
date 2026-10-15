@@ -17,7 +17,7 @@ enum Remover {
         if st.st_mode & S_IFMT == S_IFDIR {
             let fd = BulkDirectory.openDirectory(path)
             if fd >= 0 {
-                skipped = removeContents(of: fd)
+                skipped = removeContents(of: fd, device: st.st_dev)
                 close(fd)
                 if rmdir(path) != 0, skipped == 0 { skipped = 1 }
             } else {
@@ -32,7 +32,8 @@ enum Remover {
         return Result(freed: max(0, before - after), skipped: skipped)
     }
 
-    private static func removeContents(of fd: Int32) -> Int {
+    /// Stays on the starting volume, so a disk mounted inside the folder is never emptied.
+    private static func removeContents(of fd: Int32, device: dev_t) -> Int {
         var entries: [DirEntry] = []
         BulkDirectory.forEach(in: fd) { entries.append($0) }
 
@@ -44,7 +45,13 @@ enum Remover {
                     skipped += 1
                     continue
                 }
-                let inside = removeContents(of: child)
+                var childStat = stat()
+                guard fstat(child, &childStat) == 0, childStat.st_dev == device else {
+                    close(child)
+                    skipped += 1
+                    continue
+                }
+                let inside = removeContents(of: child, device: device)
                 close(child)
                 skipped += inside
                 if unlinkat(fd, entry.name, AT_REMOVEDIR) != 0, inside == 0 { skipped += 1 }

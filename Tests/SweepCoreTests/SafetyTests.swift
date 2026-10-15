@@ -109,7 +109,8 @@ struct SafetyTests {
     @Test func emptyFromTrashOnlyTouchesTrash() {
         let fx = Fixture()
         let outside = fx.file("keep.txt")
-        let removed = Cleaner.emptyFromTrash([outside, SystemInfo.trashPath, SystemInfo.trashPath + "/../Documents"])
+        let removed = Cleaner.emptyFromTrash([(outside, Cleaner.identity(of: outside)), (SystemInfo.trashPath, nil),
+                                              (SystemInfo.trashPath + "/../Documents", nil)])
         #expect(removed.removed == 0)
         #expect(removed.freed == 0)
         #expect(fx.exists("keep.txt"))
@@ -134,5 +135,45 @@ struct SafetyTests {
         #expect(slow.timedOut)
         #expect(!slow.succeeded)
         #expect(!Shell.run("/no/such/tool", []).succeeded)
+    }
+
+    @Test func pathChecksIgnoreCaseLikeAPFS() {
+        let home = NSHomeDirectory()
+        #expect("\(home)/library/Mobile Documents/x".isInside("\(home)/Library/Mobile Documents"))
+        #expect(Cleaner.unsafeLocation("\(home)/LIBRARY/mobile documents/com~apple~CloudDocs/a/node_modules") != nil)
+        #expect(Cleaner.unsafeLocation("\(home)/library") != nil)
+        #expect(Cleaner.unsafeLocation("\(home)/code/app/.GIT/x") != nil)
+    }
+
+    @Test func nestedScanRootsAreWalkedOnce() {
+        let roots = ProjectFinder.distinctRoots(["/Users/a", "/Users/a/code", "/Users/b/", "/Users/b"])
+        #expect(roots == ["/Users/a", "/Users/b"])
+    }
+
+    @Test func simulatorIDsMustBeRealUUIDs() {
+        #expect(!Cleaner.isUUID("all"))
+        #expect(!Cleaner.isUUID("booted"))
+        #expect(Cleaner.isUUID("E5168CAF-7C25-473B-845A-B7CDA6949A61"))
+    }
+
+    @Test func vendorFoldersAreNeverMatchedByAppName() {
+        let fx = Fixture()
+        let library = fx.dir("Library")
+        fx.dir("Library/Application Support/Google")
+        let found = AppInventory.leftovers(bundleID: "com.example.google", name: "Google", library: library)
+        #expect(found.isEmpty)
+    }
+
+    @Test func userFilesMustLiveInPersonalFoldersWithoutHiddenParts() {
+        let fx = Fixture()
+        let secret = fx.file(".ssh/id_ed25519", bytes: 2_000)
+        let hidden = fx.file("Documents/.private/notes.bin", bytes: 2_000)
+        for path in [secret, hidden] {
+            var st = stat()
+            lstat(path, &st)
+            let file = UserFile(path: path, name: "x", allocated: Int64(st.st_blocks) * 512, reclaimable: 0,
+                                modified: nil, lastOpened: nil, reasons: [.large])
+            #expect(UserFiles.recheck(file, home: fx.root) == "Outside your personal folders", "\(path)")
+        }
     }
 }

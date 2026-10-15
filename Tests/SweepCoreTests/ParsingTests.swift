@@ -91,14 +91,15 @@ import Testing
         let paths = CleanTarget.cache(cache(.deletePaths))
 
         #expect(folder.usesTrash(.trash))
-        #expect(!worktree.usesTrash(.trash))
+        #expect(worktree.usesTrash(.trash))
+        #expect(worktree.usesTrash(.permanent))
         #expect(!command.usesTrash(.trash))
         #expect(commandFallback.usesTrash(.trash))
         #expect(paths.usesTrash(.trash))
         #expect(!CleanTarget.simulator(device).usesTrash(.trash))
         #expect(!CleanTarget.runtime(runtime).usesTrash(.trash))
 
-        for target in [folder, worktree, command, commandFallback, paths, .simulator(device), .runtime(runtime)] {
+        for target in [folder, command, commandFallback, paths, .simulator(device), .runtime(runtime)] {
             #expect(!target.usesTrash(.permanent))
         }
     }
