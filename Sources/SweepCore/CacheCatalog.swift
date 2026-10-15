@@ -157,15 +157,27 @@ public enum CacheCatalog {
     }
 
     /// Measures every cache and resolves the tools that clean them.
-    static func scan(runningNames: Set<String>) async -> [CacheItem] {
+    static func scan(runningNames: Set<String>, previous: [CacheItem]? = nil, reuse: SizeReuse? = nil) async -> [CacheItem] {
         let items = definitions().compactMap { item -> CacheItem? in
             var item = item
             item.paths = item.paths.filter { FileManager.default.fileExists(atPath: $0) }
             return item.paths.isEmpty ? nil : item
         }
 
-        let sizes = await DirectorySizer.sizes(of: items.flatMap(\.paths))
-        return await offload { resolve(items, sizes: sizes, runningNames: runningNames) }
+        var sizes: [String: SizeInfo] = [:]
+        var toMeasure: [String] = []
+        for item in items {
+            if let reuse, let old = previous?.first(where: { $0.id == item.id }), old.paths == item.paths,
+               !item.paths.contains(where: reuse.changes.touches) {
+                sizes[item.paths[0]] = old.size
+                for path in item.paths.dropFirst() { sizes[path] = .zero }
+            } else {
+                toMeasure += item.paths
+            }
+        }
+        sizes.merge(await DirectorySizer.sizes(of: toMeasure)) { _, new in new }
+        let allSizes = sizes
+        return await offload { resolve(items, sizes: allSizes, runningNames: runningNames) }
     }
 
     private static func resolve(_ measured: [CacheItem], sizes: [String: SizeInfo], runningNames: Set<String>) -> [CacheItem] {

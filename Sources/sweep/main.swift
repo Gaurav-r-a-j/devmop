@@ -78,7 +78,8 @@ func printReport(_ result: ScanResult, options: Options) {
         print("\(bold)Disk\(reset)  \(bytes(disk.used)) used of \(bytes(disk.total)), \(bytes(disk.available)) available")
     }
     print("\(bold)Reclaimable\(reset)  \(bytes(result.totalReclaimable))  \(dim)(projects \(bytes(result.projectBytes)), caches \(bytes(result.cacheBytes)), simulators \(bytes(result.simulatorBytes)), docker \(bytes(result.dockerBytes)))\(reset)")
-    print("\(dim)Scanned in \(String(format: "%.1f", result.duration))s\(reset)\n")
+    let reused = result.measuredCount.map { " — measured \($0) changed folders, reused the rest" } ?? ""
+    print("\(dim)Scanned in \(String(format: "%.1f", result.duration))s\(reused)\(reset)\n")
 
     print("\(bold)\(pad("PROJECT", 34))\(rpad("FREES", 10))  \(pad("LAST ACTIVE", 14))  STATUS\(reset)")
     for project in result.projects.prefix(options.limit) {
@@ -134,11 +135,14 @@ func run() async {
     if !options.roots.isEmpty { settings.roots = options.roots }
 
     let interactive = isatty(STDERR_FILENO) == 1 && !options.json
-    let result = await Scanner(settings: settings).scan { progress in
+    let usesDefaultRoots = options.roots.isEmpty
+    let previous = usesDefaultRoots ? ScanCache.load() : nil
+    let result = await Scanner(settings: settings).scan(previous: previous) { progress in
         guard interactive, progress.phase != .done else { return }
         FileHandle.standardError.write(Data("\r\u{1B}[2K\(String(progress.message.prefix(100)))".utf8))
     }
     if interactive { FileHandle.standardError.write(Data("\r\u{1B}[2K".utf8)) }
+    if usesDefaultRoots { ScanCache.save(result) }
 
     if options.command == "scan" {
         if options.json {

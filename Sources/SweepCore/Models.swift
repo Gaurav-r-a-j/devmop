@@ -376,6 +376,10 @@ public struct ScanResult: Codable, Sendable {
     public var trashSize: Int64
     public var hasLocalSnapshots: Bool
     public var hasFullDiskAccess: Bool
+    /// Where in the FSEvents log this scan started, so the next scan can skip unchanged folders.
+    public var journal: ChangeJournal.Mark?
+    /// Folders measured fresh in this scan; the rest reused earlier sizes.
+    public var measuredCount: Int?
 
     public init(date: Date = Date(), duration: TimeInterval = 0, roots: [String] = [], projects: [Project] = [], caches: [CacheItem] = [], simulators: [SimulatorDevice] = [], runtimes: [SimulatorRuntime] = [], dockerRunning: Bool? = nil, disk: DiskUsage? = nil, trashSize: Int64 = 0, hasLocalSnapshots: Bool = false, hasFullDiskAccess: Bool = true) {
         self.date = date

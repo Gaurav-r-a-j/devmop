@@ -7,23 +7,28 @@ public struct Scanner: Sendable {
         self.settings = settings
     }
 
-    public func scan(progress: (@Sendable (ScanProgress) -> Void)? = nil) async -> ScanResult {
+    public func scan(previous: ScanResult? = nil, progress: (@Sendable (ScanProgress) -> Void)? = nil) async -> ScanResult {
         let started = Date()
+        let mark = ChangeJournal.currentMark()
+        let reuse = await offload { SizeReuse(previous: previous, settings: settings) }
         let runningNames = ProcessInspector.processNames()
 
-        async let projects = scanProjects(progress: progress)
-        async let caches = CacheCatalog.scan(runningNames: runningNames)
+        async let projects = scanProjects(reuse: reuse, progress: progress)
+        async let caches = CacheCatalog.scan(runningNames: runningNames, previous: previous?.caches, reuse: reuse)
         async let simulators = offload { SimulatorInspector.devices() }
         async let runtimes = offload { SimulatorInspector.runtimes() }
         async let docker = offload { DockerInspector.scan() }
-        async let trash = offload { DirectorySizer.size(of: SystemInfo.trashPath).allocated }
+        async let trash = offload {
+            reuse?.cached(SystemInfo.trashPath, previous?.trashSize) ?? DirectorySizer.size(of: SystemInfo.trashPath).allocated
+        }
         async let snapshots = offload { SystemInfo.hasLocalSnapshots() }
 
         let dockerResult = await docker
+        let (projectList, measuredCount) = await projects
         var result = ScanResult(
             date: started,
             roots: settings.roots,
-            projects: await projects,
+            projects: projectList,
             caches: await caches + (dockerResult?.items ?? []),
             simulators: await simulators,
             runtimes: await runtimes,
@@ -33,12 +38,18 @@ public struct Scanner: Sendable {
             hasLocalSnapshots: await snapshots,
             hasFullDiskAccess: SystemInfo.hasFullDiskAccess()
         )
+        result.journal = mark
+        result.measuredCount = measuredCount
         result.duration = Date().timeIntervalSince(started)
         progress?(ScanProgress(phase: .done, message: "Done", fraction: 1))
         return result
     }
 
     public func scanProjects(progress: (@Sendable (ScanProgress) -> Void)? = nil) async -> [Project] {
+        await scanProjects(reuse: nil, progress: progress).projects
+    }
+
+    func scanProjects(reuse: SizeReuse?, progress: (@Sendable (ScanProgress) -> Void)?) async -> (projects: [Project], measured: Int) {
         let finder = ProjectFinder(settings: settings) { count, path in
             progress?(ScanProgress(phase: .findingProjects, message: "Looking in \(path.abbreviatingHome)", fraction: nil))
             _ = count
@@ -52,14 +63,24 @@ public struct Scanner: Sendable {
             return (filtered, Self.inspectGit(filtered))
         }
 
-        let candidatePaths = filtered.flatMap { $0.candidates.map(\.path) }
-        let worktreePaths = filtered.filter(\.isWorktree).map(\.path)
-        let total = candidatePaths.count + worktreePaths.count
-        let measured = ProgressCounter()
-        let sizes = await DirectorySizer.sizes(of: candidatePaths + worktreePaths) { _, _ in
-            let done = measured.increment()
-            progress?(ScanProgress(phase: .measuring, message: "Measuring \(done) of \(total) folders", fraction: Double(done) / Double(max(total, 1))))
+        let allPaths = filtered.flatMap { $0.candidates.map(\.path) } + filtered.filter(\.isWorktree).map(\.path)
+        var sizes: [String: SizeInfo] = [:]
+        var toMeasure: [String] = []
+        for path in allPaths {
+            if let cached = reuse?.cached(path) {
+                sizes[path] = cached
+            } else {
+                toMeasure.append(path)
+            }
         }
+
+        let total = toMeasure.count
+        let measured = ProgressCounter()
+        let fresh = await DirectorySizer.sizes(of: toMeasure) { _, _ in
+            let done = measured.increment()
+            progress?(ScanProgress(phase: .measuring, message: "Measuring \(done) of \(total) changed folders", fraction: Double(done) / Double(max(total, 1))))
+        }
+        sizes.merge(fresh) { _, new in new }
 
         var projects: [Project] = []
         for draft in filtered {
@@ -110,7 +131,7 @@ public struct Scanner: Sendable {
 
             if !project.artifacts.isEmpty { projects.append(project) }
         }
-        return projects.sorted { $0.reclaimable > $1.reclaimable }
+        return (projects.sorted { $0.reclaimable > $1.reclaimable }, total)
     }
 
     static func warning(for artifact: Artifact, in project: Project) -> String? {
@@ -181,6 +202,35 @@ enum Parallel {
             }
         }
         return results.map { $0! }
+    }
+}
+
+/// Sizes from the previous scan that FSEvents says haven't changed since.
+struct SizeReuse: Sendable {
+    let sizes: [String: SizeInfo]
+    let changes: ChangeJournal.ChangeSet
+
+    init?(previous: ScanResult?, settings: SweepSettings) {
+        guard let previous, previous.roots == settings.roots else { return nil }
+        let roots = Array(Set(settings.roots.map(\.expandingTilde) + [NSHomeDirectory()]))
+        guard let changed = ChangeJournal.changes(since: previous.journal, under: roots) else { return nil }
+
+        var sizes: [String: SizeInfo] = [:]
+        for project in previous.projects {
+            for artifact in project.artifacts { sizes[artifact.path] = artifact.size }
+        }
+        self.sizes = sizes
+        self.changes = ChangeJournal.ChangeSet(changed)
+    }
+
+    func cached(_ path: String) -> SizeInfo? {
+        guard let size = sizes[path], !changes.touches(path), FileManager.default.fileExists(atPath: path) else { return nil }
+        return size
+    }
+
+    func cached(_ path: String, _ previousValue: Int64?) -> Int64? {
+        guard let previousValue, !changes.touches(path) else { return nil }
+        return previousValue
     }
 }
 

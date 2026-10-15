@@ -101,7 +101,7 @@ final class AppModel {
         scanFraction = nil
         let startVersion = dataVersion
         let scanner = Scanner(settings: settings)
-        let fresh = await scanner.scan { progress in
+        let fresh = await scanner.scan(previous: result) { progress in
             Task { @MainActor [weak self] in
                 guard let self, self.isScanning else { return }
                 self.scanMessage = progress.message
@@ -262,7 +262,6 @@ final class AppModel {
         cleanPhase = .done(report)
         history = History.load()
         await refreshAfterClean(report)
-        Task { await scan() }
     }
 
     /// Removes cleaned items from the current results right away.
