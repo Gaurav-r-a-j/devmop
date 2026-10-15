@@ -106,6 +106,13 @@ struct ContentView: View {
             }
         }
         .sheet(isPresented: Binding(
+            get: { !model.hasSeenWelcome && model.cleanPhase == nil },
+            set: { if !$0 { model.hasSeenWelcome = true } }
+        )) {
+            WelcomeView()
+                .environment(model)
+        }
+        .sheet(isPresented: Binding(
             get: { model.cleanPhase != nil },
             set: { if !$0 { model.cleanPhase = nil } }
         )) {

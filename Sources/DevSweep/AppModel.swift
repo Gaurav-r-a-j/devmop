@@ -56,6 +56,7 @@ enum CleanPhase: Equatable {
 final class AppModel {
     var section: SidebarSection? = .overview
     var settings: SweepSettings { didSet { saveSettings() } }
+    var hasSeenWelcome: Bool { didSet { UserDefaults.standard.set(hasSeenWelcome, forKey: Keys.welcome) } }
     var showsMenuBarIcon: Bool { didSet { UserDefaults.standard.set(showsMenuBarIcon, forKey: Keys.menuBar) } }
     var weeklyScan: Bool { didSet { UserDefaults.standard.set(weeklyScan, forKey: Keys.weeklyScan); Automation.shared.configure(for: self) } }
 
@@ -87,6 +88,7 @@ final class AppModel {
         static let settings = "settings"
         static let weeklyScan = "weeklyScan"
         static let menuBar = "showsMenuBarIcon"
+        static let welcome = "hasSeenWelcome"
     }
 
     init() {
@@ -98,6 +100,7 @@ final class AppModel {
         }
         weeklyScan = UserDefaults.standard.object(forKey: Keys.weeklyScan) as? Bool ?? true
         showsMenuBarIcon = UserDefaults.standard.object(forKey: Keys.menuBar) as? Bool ?? true
+        hasSeenWelcome = UserDefaults.standard.bool(forKey: Keys.welcome)
         result = ScanCache.load()
         rebuildTargets()
         clockTimer = Timer.scheduledTimer(withTimeInterval: 60, repeats: true) { [weak self] _ in
