@@ -1,8 +1,9 @@
 # DevSweep — run `make help` to see every command.
 
 VERSION ?= 1.0.0
+REPO ?= YOUR-USERNAME/devsweep
 
-.PHONY: help build app install run test cli icon site og release clean
+.PHONY: help build app install run test cli icon site og stats release clean
 
 help:
 	@echo "make build     Compile everything (debug)"
@@ -14,6 +15,7 @@ help:
 	@echo "make icon      Regenerate the app icon preview in build/AppIcon.iconset"
 	@echo "make site      Open the website (docs/) in your browser"
 	@echo "make og        Re-render the link preview image docs/assets/og.png"
+	@echo "make stats     Download counts per release from GitHub (needs gh)"
 	@echo "make release   Signed, notarized DMG (needs SIGN_IDENTITY and VERSION)"
 	@echo "make clean     Remove build output"
 
@@ -46,6 +48,9 @@ site:
 og:
 	"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --hide-scrollbars \
 		--window-size=1200,630 --force-prefers-reduced-motion --screenshot="$(CURDIR)/docs/assets/og.png" "file://$(CURDIR)/scripts/og-card.html"
+
+stats:
+	@gh api repos/$(REPO)/releases --jq '.[] | .tag_name as $$v | .assets[] | "\($$v)  \(.name)  \(.download_count) downloads"'
 
 release:
 	VERSION=$(VERSION) ./scripts/release.sh

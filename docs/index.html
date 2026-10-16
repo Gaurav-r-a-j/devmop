@@ -43,12 +43,13 @@
         <h1 class="headline enter" style="--delay: 0.15s">Your Mac, minus the clutter.</h1>
         <p class="subhead enter" style="--delay: 0.3s">DevSweep finds the gigabytes your dev tools leave behind — old <code>node_modules</code>, build folders, caches, simulators, Docker — and clears them without touching your work.</p>
         <div class="actions enter" style="--delay: 0.45s">
-          <a class="pill" href="#download">Download for Mac</a>
+          <a class="pill" href="#download" data-goatcounter-click="download-hero">Download for Mac</a>
           <a class="chevron" href="https://github.com/YOUR-USERNAME/devsweep">View on GitHub</a>
         </div>
         <p class="fineprint enter" style="--delay: 0.55s">macOS 14 Sonoma or later · Apple silicon and Intel</p>
 
-        <scan-window class="window enter" style="--delay: 0.7s" role="img" aria-label="The DevSweep window finishing a scan: 160 GB can be freed, split into project files, caches, simulators and Docker.">
+        <div class="hero-stage enter" style="--delay: 0.7s">
+        <scan-window class="window" role="img" aria-label="The DevSweep window finishing a scan: 160 GB can be freed, split into project files, caches, simulators and Docker.">
           <div class="window-bar"><span></span><span></span><span></span><b>Overview</b><em class="status" data-busy="Measuring 386 folders…">Scanned just now</em></div>
           <div class="scan-line"></div>
           <div class="window-body">
@@ -94,6 +95,7 @@
             </div>
           </div>
         </scan-window>
+        </div>
       </div>
     </header>
 
@@ -333,13 +335,13 @@
       </div>
     </section>
 
-    <section class="center" id="download">
+    <section class="center glow-band" id="download">
       <div class="wrap">
         <img class="download-icon reveal" src="assets/icon-256.png" alt="" width="96" height="96" loading="lazy">
         <h2 class="section-title">Get DevSweep.</h2>
         <p class="lede">For macOS 14 Sonoma and later, on Apple silicon and Intel Macs.</p>
         <div class="actions">
-          <a class="pill" href="https://github.com/YOUR-USERNAME/devsweep/releases/latest">Download DevSweep.dmg</a>
+          <a class="pill" href="https://github.com/YOUR-USERNAME/devsweep/releases/latest" data-goatcounter-click="download-dmg">Download DevSweep.dmg</a>
         </div>
         <p class="release-meta">Version 1.0 · Universal app · <a href="changelog.html">What’s new</a> · Nothing leaves your Mac</p>
         <ol class="steps">
@@ -352,7 +354,7 @@
       </div>
     </section>
 
-    <section class="alt" id="faq">
+    <section id="faq">
       <div class="wrap">
         <h2 class="section-title center">Questions</h2>
         <div class="faq">
@@ -391,31 +393,38 @@
 
   <footer class="site-footer">
     <div class="wrap">
-      <div class="footer-cols">
-        <div>
-          <h2>Product</h2>
-          <a href="index.html#features">Features</a>
-          <a href="index.html#safety">Safety</a>
-          <a href="index.html#download">Download</a>
-          <a href="changelog.html">What’s New</a>
+      <div class="footer-top">
+        <div class="footer-brand">
+          <a class="brand" href="index.html"><img src="assets/favicon-64.png" alt="" width="28" height="28">DevSweep</a>
+          <p>Free up the space your dev tools leave behind. Native, careful, and private.</p>
+          <a class="pill" href="index.html#download" data-goatcounter-click="download-footer">Download for Mac</a>
         </div>
-        <div>
-          <h2>Support</h2>
-          <a href="support.html">Help &amp; Troubleshooting</a>
-          <a href="index.html#faq">FAQ</a>
-          <a href="https://github.com/YOUR-USERNAME/devsweep/issues">Report a Problem</a>
-          <a href="security.html">Security</a>
-        </div>
-        <div>
-          <h2>Legal</h2>
-          <a href="privacy.html">Privacy Policy</a>
-          <a href="terms.html">Terms of Use</a>
-        </div>
+        <nav class="footer-cols" aria-label="Footer">
+          <div>
+            <h2>Product</h2>
+            <a href="index.html#features">Features</a>
+            <a href="index.html#safety">Safety</a>
+            <a href="index.html#download">Download</a>
+            <a href="changelog.html">What’s New</a>
+          </div>
+          <div>
+            <h2>Support</h2>
+            <a href="support.html">Help &amp; Troubleshooting</a>
+            <a href="index.html#faq">FAQ</a>
+            <a href="https://github.com/YOUR-USERNAME/devsweep/issues">Report a Problem</a>
+            <a href="security.html">Security</a>
+          </div>
+          <div>
+            <h2>Legal</h2>
+            <a href="privacy.html">Privacy Policy</a>
+            <a href="terms.html">Terms of Use</a>
+            <a href="sitemap.xml">Site Map</a>
+          </div>
+        </nav>
       </div>
-      <p class="legal-line">Apple, Mac, macOS and Apple silicon are trademarks of Apple Inc., registered in the U.S. and other countries. DevSweep is an independent app and is not affiliated with or endorsed by Apple Inc.</p>
       <div class="footer-bottom">
-        <span>Copyright © 2026 YOUR-NAME. All rights reserved.</span>
-        <span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a> · <a href="sitemap.xml">Site Map</a></span>
+        <p>Apple, Mac, macOS and Apple silicon are trademarks of Apple Inc., registered in the U.S. and other countries. DevSweep is an independent app and is not affiliated with or endorsed by Apple Inc.</p>
+        <p>Copyright © 2026 YOUR-NAME. All rights reserved.</p>
       </div>
     </div>
   </footer>

@@ -1,3 +1,13 @@
+// Cookie-free visit and download counts via GoatCounter; loads only once a code is set, never with Do Not Track.
+const GOATCOUNTER_CODE = "YOUR-GOATCOUNTER-CODE";
+if (!GOATCOUNTER_CODE.startsWith("YOUR-") && navigator.doNotTrack !== "1" && location.protocol === "https:") {
+  const counter = document.createElement("script");
+  counter.async = true;
+  counter.src = "https://gc.zgo.at/count.js";
+  counter.dataset.goatcounter = `https://${GOATCOUNTER_CODE}.goatcounter.com/count`;
+  document.head.append(counter);
+}
+
 const motionOK = matchMedia("(prefers-reduced-motion: no-preference)").matches && "IntersectionObserver" in window;
 
 // Calls `play` once when `element` is mostly in view.
