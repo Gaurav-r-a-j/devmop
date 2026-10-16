@@ -2,7 +2,7 @@
 
 VERSION ?= 1.0.0
 
-.PHONY: help build app install run test cli icon site release clean
+.PHONY: help build app install run test cli icon site og release clean
 
 help:
 	@echo "make build     Compile everything (debug)"
@@ -13,6 +13,7 @@ help:
 	@echo "make cli       Build the sweep command-line tool to build/sweep"
 	@echo "make icon      Regenerate the app icon preview in build/AppIcon.iconset"
 	@echo "make site      Open the website (docs/) in your browser"
+	@echo "make og        Re-render the link preview image docs/assets/og.png"
 	@echo "make release   Signed, notarized DMG (needs SIGN_IDENTITY and VERSION)"
 	@echo "make clean     Remove build output"
 
@@ -41,6 +42,10 @@ icon:
 
 site:
 	open docs/index.html
+
+og:
+	"/Applications/Google Chrome.app/Contents/MacOS/Google Chrome" --headless=new --disable-gpu --hide-scrollbars \
+		--window-size=1200,630 --force-prefers-reduced-motion --screenshot="$(CURDIR)/docs/assets/og.png" "file://$(CURDIR)/scripts/og-card.html"
 
 release:
 	VERSION=$(VERSION) ./scripts/release.sh

@@ -140,6 +140,22 @@ class TypeTerminal extends HTMLElement {
   }
 }
 
+// Ticks through the last checks before a delete, then shows the result.
+class SafetyCheck extends HTMLElement {
+  connectedCallback() {
+    if (!motionOK) return;
+    this.toggleAttribute("data-armed", true);
+    whenVisible(this, async () => {
+      for (const item of this.querySelectorAll("li")) {
+        await wait(420);
+        item.classList.add("passed");
+      }
+      await wait(500);
+      this.querySelector(".check-done").classList.add("shown");
+    }, 0.3);
+  }
+}
+
 // A command with a Copy button.
 class CopyCommand extends HTMLElement {
   connectedCallback() {
@@ -167,5 +183,19 @@ customElements.define("story-steps", StorySteps);
 customElements.define("process-demo", ProcessDemo);
 customElements.define("type-terminal", TypeTerminal);
 customElements.define("copy-command", CopyCommand);
+customElements.define("safety-check", SafetyCheck);
 
 document.querySelectorAll(".cascade, .rows.compare, .rows.map").forEach((element) => playOnView(element));
+
+// Highlights the nav link for the section in view, mirrored to aria-current for assistive tech.
+const navLinks = [...document.querySelectorAll("[data-spy] a[href^='#']")].filter((link) => link.getAttribute("href").length > 1);
+const sections = navLinks.map((link) => document.querySelector(link.getAttribute("href"))).filter(Boolean);
+if ("IntersectionObserver" in window && sections.length) {
+  const spy = new IntersectionObserver((entries) => {
+    for (const entry of entries) {
+      if (!entry.isIntersecting) continue;
+      navLinks.forEach((link) => link.setAttribute("aria-current", String(link.getAttribute("href") === `#${entry.target.id}`)));
+    }
+  }, { rootMargin: "-45% 0px -50% 0px" });
+  sections.forEach((section) => spy.observe(section));
+}

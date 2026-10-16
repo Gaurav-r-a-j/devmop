@@ -8,7 +8,11 @@
   <meta name="description" content="DevSweep is a native Mac app that finds old node_modules, build folders, caches, simulators, Docker data and leftover dev servers, and cleans them safely.">
   <meta property="og:title" content="DevSweep for Mac">
   <meta property="og:description" content="Free up the space your dev tools leave behind. Native, private, careful.">
-  <meta property="og:image" content="assets/icon-1024.png">
+  <meta property="og:image" content="https://YOUR-USERNAME.github.io/devsweep/assets/og.png">
+  <meta property="og:image:width" content="1200">
+  <meta property="og:image:height" content="630">
+  <meta property="og:type" content="website">
+  <meta name="twitter:card" content="summary_large_image">
   <link rel="icon" href="assets/favicon-64.png" type="image/png">
   <link rel="apple-touch-icon" href="assets/icon-256.png">
   <link rel="stylesheet" href="styles.css">
@@ -18,7 +22,7 @@
   <a class="skip" href="#features">Skip to features</a>
 
   <nav class="nav" aria-label="Main">
-    <div class="wrap">
+    <div class="wrap" data-spy>
       <a class="brand" href="#top"><img src="assets/favicon-64.png" alt="" width="22" height="22">DevSweep</a>
       <span class="links"><a href="#how">How it works</a></span>
       <span class="links"><a href="#features">Features</a></span>
@@ -271,15 +275,60 @@
       <div class="wrap">
         <p class="eyebrow">Safety</p>
         <h2 class="section-title">Careful with your work.</h2>
-        <p class="lede">A cleaner you can’t trust is worse than a full disk. These rules are built into every delete.</p>
-        <ul class="checks">
-          <li class="reveal"><b>Nothing goes without review.</b><span>You see every item and its size before anything is removed.</span></li>
-          <li class="reveal"><b>The Trash comes first.</b><span>Folders, files and apps move to the Trash, so you can put them back.</span></li>
-          <li class="reveal"><b>Source code is off limits.</b><span><code>.git</code>, <code>.env</code>, your home folder and iCloud folders are never offered.</span></li>
-          <li class="reveal"><b>Checked again before deleting.</b><span>Every item is re-verified a moment before removal, not trusted from an old scan.</span></li>
-          <li class="reveal"><b>Running projects are left alone.</b><span>If a dev server is using a folder, DevSweep says which one and skips it.</span></li>
-          <li class="reveal"><b>Nothing leaves your Mac.</b><span>No accounts, no analytics, no network requests. <a href="privacy.html">Privacy</a></span></li>
-        </ul>
+        <p class="lede">A cleaner you can’t trust is worse than a full disk. So DevSweep labels everything honestly, checks again before every delete, and simply never offers some things.</p>
+
+        <div class="tiers">
+          <article class="tier reveal" style="--tier: #34c759">
+            <span class="tier-label">Safe</span>
+            <p>Pure caches. Your tools fetch them again on their own.</p>
+            <small>npm and pnpm caches · Xcode DerivedData · <code>.turbo</code></small>
+          </article>
+          <article class="tier reveal" style="--tier: #007aff">
+            <span class="tier-label">Rebuildable</span>
+            <p>Comes back with one install or build.</p>
+            <small><code>node_modules</code> · <code>.next</code> · <code>target</code> · simulators</small>
+          </article>
+          <article class="tier reveal" style="--tier: #ff9500">
+            <span class="tier-label">Review</span>
+            <p>Might hold data, so it’s never selected for you.</p>
+            <small>iPhone backups · Docker volumes · worktrees · your files</small>
+          </article>
+          <article class="tier reveal" style="--tier: #8e8e93">
+            <span class="tier-label">Never touched</span>
+            <p>Not shown at all, so it can’t be picked by mistake.</p>
+            <small><code>.git</code> · <code>.env</code> · source code · macOS</small>
+          </article>
+        </div>
+
+        <div class="safety-split">
+          <div class="reveal">
+            <h3 class="sub-title">One last check, every time.</h3>
+            <p class="sub-lede">A scan can be hours old. So right before anything is removed, DevSweep looks again — and stops if anything has changed.</p>
+            <ul class="fine-list">
+              <li>Folders, files and apps go to the Trash first.</li>
+              <li>Read-only and locked files are left exactly as they are.</li>
+              <li>Projects with a running dev server are skipped, by name.</li>
+              <li>The last copy of a duplicate is always kept.</li>
+            </ul>
+          </div>
+          <safety-check class="check-card" role="group" aria-label="Example: the checks DevSweep runs right before moving a node_modules folder to the Trash.">
+            <div class="check-head"><code>web-dashboard/node_modules</code><span>1.1 GB</span></div>
+            <ol>
+              <li><span>Still the same folder as in the scan</span></li>
+              <li><span>Not a link to somewhere else</span></li>
+              <li><span>Its <code>package.json</code> is still there</span></li>
+              <li><span>Outside <code>.git</code> and protected folders</span></li>
+              <li><span>No dev server running in the project</span></li>
+            </ol>
+            <div class="check-done">Moved to the Trash</div>
+          </safety-check>
+        </div>
+
+        <div class="never reveal">
+          <span>Never offered</span>
+          <code>.git</code><code>.env</code><code>src/</code><span class="chip">your home folder</span><span class="chip">iCloud Drive</span><span class="chip">Dropbox</span><span class="chip">macOS</span><span class="chip">other people’s files</span>
+        </div>
+        <p class="private reveal">And nothing leaves your Mac: no accounts, no analytics, no network requests. <a href="privacy.html">Read the privacy details</a></p>
       </div>
     </section>
 
@@ -291,6 +340,7 @@
         <div class="actions">
           <a class="pill" href="https://github.com/YOUR-USERNAME/devsweep/releases/latest">Download DevSweep.dmg</a>
         </div>
+        <p class="release-meta">Version 1.0 · Universal app · <a href="https://github.com/YOUR-USERNAME/devsweep/blob/main/CHANGELOG.md">What’s new</a> · Nothing leaves your Mac</p>
         <ol class="steps">
           <li class="reveal"><b>Open the download</b><span>Drag DevSweep into your Applications folder.</span></li>
           <li class="reveal"><b>Open it the first time</b><span>If macOS says it can’t check the app, open <kbd>System Settings</kbd> › Privacy &amp; Security and click <kbd>Open Anyway</kbd>. You only do this once.</span></li>
