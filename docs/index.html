@@ -1,0 +1,228 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>DevSweep — Free up the space your dev tools leave behind</title>
+  <meta name="description" content="DevSweep is a native Mac app that finds old node_modules, build folders, caches, simulators, Docker data and leftover dev servers, and cleans them safely.">
+  <meta property="og:title" content="DevSweep for Mac">
+  <meta property="og:description" content="Free up the space your dev tools leave behind. Native, private, careful.">
+  <meta property="og:image" content="assets/icon-1024.png">
+  <link rel="icon" href="assets/favicon-64.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icon-256.png">
+  <link rel="stylesheet" href="styles.css">
+  <script src="main.js" defer></script>
+</head>
+<body>
+  <nav class="nav" aria-label="Main">
+    <div class="wrap">
+      <a class="brand" href="#top"><img src="assets/favicon-64.png" alt="" width="22" height="22">DevSweep</a>
+      <span class="links"><a href="#features">Features</a></span>
+      <span class="links"><a href="#safety">Safety</a></span>
+      <span class="links"><a href="#faq">FAQ</a></span>
+      <a class="pill" href="#download">Download</a>
+    </div>
+  </nav>
+
+  <main id="top">
+    <header class="hero">
+      <div class="wrap">
+        <img class="icon" src="assets/icon-512.png" alt="DevSweep app icon" width="128" height="128" fetchpriority="high">
+        <h1 class="headline">Your Mac, minus the clutter.</h1>
+        <p class="subhead">DevSweep finds the gigabytes your dev tools leave behind — old <code>node_modules</code>, build folders, caches, simulators, Docker — and clears them without touching your work.</p>
+        <div class="actions">
+          <a class="pill" href="#download">Download for Mac</a>
+          <a class="chevron" href="https://github.com/YOUR-USERNAME/devsweep">View on GitHub</a>
+        </div>
+        <p class="fineprint">macOS 14 Sonoma or later · Apple silicon and Intel</p>
+
+        <div class="window" role="img" aria-label="The DevSweep window showing 160 GB that can be freed, split into project files, caches, simulators and Docker.">
+          <div class="window-bar"><span></span><span></span><span></span><b>Overview</b><em>Scanned just now</em></div>
+          <div class="window-body">
+            <div class="window-side">
+              <div class="on">Overview</div>
+              <h4>Developer</h4>
+              <div>Projects <small>38 GB</small></div>
+              <div>Caches <small>43 GB</small></div>
+              <div>Simulators <small>36 GB</small></div>
+              <div>Processes &amp; Ports <small>3 left</small></div>
+              <h4>Mac</h4>
+              <div>Storage Map</div>
+              <div>System Data <small>11 GB</small></div>
+              <div>Files</div>
+              <div>Apps</div>
+            </div>
+            <div class="window-main">
+              <div class="card">
+                <h5>Macintosh HD <small>87.5 GB available of 494 GB</small></h5>
+                <storage-bar><span style="--share:7.69%;background:var(--seg-projects)"></span><span style="--share:8.70%;background:var(--seg-caches)"></span><span style="--share:2.23%;background:var(--seg-system)"></span><span style="--share:7.29%;background:var(--seg-sims)"></span><span style="--share:8.70%;background:var(--seg-docker)"></span><span style="--share:24.29%;background:var(--seg-data)"></span><span style="--share:16.19%;background:var(--seg-library)"></span><span style="--share:7.29%;background:var(--seg-macos)"></span></storage-bar>
+                <div class="legend">
+                  <span><i class="dot" style="background:var(--seg-projects)"></i>Project build files</span>
+                  <span><i class="dot" style="background:var(--seg-caches)"></i>Developer caches</span>
+                  <span><i class="dot" style="background:var(--seg-sims)"></i>Simulators</span>
+                  <span><i class="dot" style="background:var(--seg-docker)"></i>Docker</span>
+                  <span><i class="dot" style="background:var(--seg-data)"></i>Your files &amp; apps</span>
+                  <span><i class="dot" style="background:var(--seg-macos)"></i>macOS</span>
+                </div>
+              </div>
+              <div class="card">
+                <span class="muted">You can free up to</span>
+                <div class="big-number">160 GB</div>
+                <span class="muted">Recommended now: 58 GB from safe caches and projects untouched for 60+ days.</span>
+              </div>
+              <div class="mini-grid">
+                <div class="card"><b>38 GB</b><span class="muted">Project files</span></div>
+                <div class="card"><b>43 GB</b><span class="muted">Caches</span></div>
+                <div class="card"><b>36 GB</b><span class="muted">Simulators</span></div>
+                <div class="card"><b>43 GB</b><span class="muted">Docker</span></div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </header>
+
+    <section>
+      <div class="wrap">
+        <p class="proof reveal">On the MacBook it was built on, DevSweep found <span>160 GB to free</span> — <span>309 <code>node_modules</code> folders</span>, a <span>9 GB pnpm store</span>, <span>22 GB of simulators</span>, and <span>three servers</span> still running from a terminal closed days earlier.</p>
+      </div>
+    </section>
+
+    <section class="alt" id="features">
+      <div class="wrap">
+        <p class="eyebrow">Features</p>
+        <h2 class="section-title">Knows what a project is.</h2>
+        <p class="lede">Most cleaners see folders. DevSweep sees projects — when you last touched them, whether git has unsaved work, and whether something is still running inside.</p>
+
+        <div class="tiles">
+          <article class="tile reveal">
+            <h3>Every build folder, project by project.</h3>
+            <p><code>node_modules</code>, <code>.next</code>, <code>dist</code>, <code>target</code>, <code>.venv</code>, Pods and more across 15 ecosystems. Folders like <code>dist</code> only count when git ignores them.</p>
+            <div class="demo">
+              <div class="rows">
+                <div><span><code>node_modules ×12</code><small>web-dashboard · 19 hours ago</small></span><span class="tag blue">Rebuildable</span></div>
+                <div><span><code>.next ×2</code><small>marketing-site · 3 hours ago</small></span><span class="tag blue">Rebuildable</span></div>
+                <div><span><code>.venv</code><small>ml-experiments · 2 weeks ago</small></span><span class="tag blue">Rebuildable</span></div>
+                <div><span><code>.turbo ×12</code><small>web-dashboard</small></span><span class="tag green">Safe</span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="tile reveal">
+            <h3>Sizes that tell the truth.</h3>
+            <p>pnpm and APFS share files between folders. A 2.4 GB <code>node_modules</code> that frees <strong>48 MB</strong> is shown as exactly that — and DevSweep tells you to prune the pnpm store instead.</p>
+            <div class="demo">
+              <div class="rows">
+                <div><span><code>node_modules</code><small>Uses 2.37 GB, but most of it is shared</small></span><b>48 MB</b></div>
+                <div><span>pnpm store<small>Packages no project uses any more</small></span><b>9.4 GB</b></div>
+                <div><span>Docker build cache<small>Measured by Docker itself</small></span><b>15.7 GB</b></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="tile wide reveal">
+            <h3>Find the servers you forgot to stop.</h3>
+            <p>Closed the terminal, but port 8010 is still taken? Processes &amp; Ports lists dev servers, MCP servers and model servers, flags the ones left running on their own, and frees a port in one click.</p>
+            <div class="demo">
+              <div class="rows">
+                <div><span><code>uvicorn worker</code><small>support-bot/api · running for 2 days</small></span><span><span class="tag orange">Leftover</span> <span class="tag blue">:8010</span> <span class="stop" aria-hidden="true">Stop</span></span></div>
+                <div><span><code>orders_mcp.py</code><small>MCP server · running for 3 days</small></span><span><span class="tag orange">Leftover</span> <span class="tag blue">:8090</span> <span class="stop" aria-hidden="true">Stop</span></span></div>
+                <div><span><code>expo start 8082</code><small>delivery-app/mobile</small></span><span><span class="tag blue">:8082</span> <span class="stop" aria-hidden="true">Stop</span></span></div>
+              </div>
+            </div>
+          </article>
+
+          <article class="tile third reveal">
+            <h3>The whole Mac, explained.</h3>
+            <p>The Storage Map breaks “System Data” into Library caches, app data, Homebrew, swap and macOS itself — and says what can go and why.</p>
+          </article>
+          <article class="tile third reveal">
+            <h3>Caches, cleaned properly.</h3>
+            <p>npm, pnpm, Yarn, Bun, Homebrew, Gradle, Xcode, Docker and browsers — using each tool’s own clean command where one exists.</p>
+          </article>
+          <article class="tile third reveal">
+            <h3>Apps, without leftovers.</h3>
+            <p>Uninstall apps with their caches and settings, and find data left behind by apps you deleted long ago.</p>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="safety">
+      <div class="wrap">
+        <p class="eyebrow">Safety</p>
+        <h2 class="section-title">Careful with your work.</h2>
+        <p class="lede">A cleaner you can’t trust is worse than a full disk. These rules are built into every delete.</p>
+        <ul class="checks">
+          <li class="reveal"><b>Nothing goes without review.</b><span>You see every item and its size before anything is removed.</span></li>
+          <li class="reveal"><b>The Trash comes first.</b><span>Folders, files and apps move to the Trash, so you can put them back.</span></li>
+          <li class="reveal"><b>Source code is off limits.</b><span><code>.git</code>, <code>.env</code>, your home folder and iCloud folders are never offered.</span></li>
+          <li class="reveal"><b>Checked again before deleting.</b><span>Every item is re-verified a moment before removal, not trusted from an old scan.</span></li>
+          <li class="reveal"><b>Running projects are left alone.</b><span>If a dev server is using a folder, DevSweep says which one and skips it.</span></li>
+          <li class="reveal"><b>Nothing leaves your Mac.</b><span>No accounts, no analytics, no network requests. <a href="privacy.html">Privacy</a></span></li>
+        </ul>
+      </div>
+    </section>
+
+    <section class="alt center" id="download">
+      <div class="wrap">
+        <p class="eyebrow">Download</p>
+        <h2 class="section-title">Get DevSweep.</h2>
+        <p class="lede">For macOS 14 Sonoma and later, on Apple silicon and Intel Macs.</p>
+        <div class="actions">
+          <a class="pill" href="https://github.com/YOUR-USERNAME/devsweep/releases/latest">Download DevSweep.dmg</a>
+        </div>
+        <ol class="steps">
+          <li><b>Open the download</b><span>Drag DevSweep into your Applications folder.</span></li>
+          <li><b>Open it the first time</b><span>If macOS says it can’t check the app, open <kbd>System Settings</kbd> › Privacy &amp; Security and click <kbd>Open Anyway</kbd>. You only do this once.</span></li>
+          <li><b>Allow Full Disk Access</b><span>DevSweep walks you through it, so it can measure Library, Mail, Photos and the Trash.</span></li>
+        </ol>
+        <p class="fineprint">Prefer to build it yourself? Clone the repository and run:</p>
+        <copy-command><code>make install</code></copy-command>
+      </div>
+    </section>
+
+    <section id="faq">
+      <div class="wrap">
+        <h2 class="section-title center">Questions</h2>
+        <div class="faq">
+          <details name="faq">
+            <summary>Is it safe to delete node_modules and build folders?</summary>
+            <p>Yes. They are rebuilt by your package manager or build tool. DevSweep shows how to rebuild each one, skips projects with something running, and moves everything to the Trash first.</p>
+          </details>
+          <details name="faq">
+            <summary>Why isn’t it on the Mac App Store?</summary>
+            <p>App Store apps run in a sandbox that can’t see other apps’ caches or your project folders, which is exactly what a cleaner needs. So DevSweep is downloaded directly, like most developer tools.</p>
+          </details>
+          <details name="faq">
+            <summary>Why does macOS warn me the first time?</summary>
+            <p>macOS shows that message for apps downloaded outside the App Store that aren’t notarized yet. Clicking Open Anyway once in Privacy &amp; Security lets it run, and it opens normally from then on.</p>
+          </details>
+          <details name="faq">
+            <summary>What does Full Disk Access let it do?</summary>
+            <p>Measure folders macOS protects, like Library, Mail, Photos and the Trash. DevSweep reads sizes and names; it doesn’t open your documents or messages.</p>
+          </details>
+          <details name="faq">
+            <summary>Does it work on Intel Macs?</summary>
+            <p>Yes. It’s a universal app that runs natively on Apple silicon and Intel, on macOS 14 Sonoma or later.</p>
+          </details>
+          <details name="faq">
+            <summary>How do I uninstall DevSweep?</summary>
+            <p>Quit it from the menu bar, move it to the Trash, and delete <code>~/Library/Application Support/DevSweep</code>. That’s everything it stores.</p>
+          </details>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <footer>
+    <div class="wrap">
+      <span>© 2026 DevSweep</span>
+      <a href="privacy.html">Privacy</a>
+      <a href="https://github.com/YOUR-USERNAME/devsweep">GitHub</a>
+      <span class="spacer">Made for Mac.</span>
+    </div>
+  </footer>
+</body>
+</html>

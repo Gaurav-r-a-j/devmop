@@ -2,7 +2,7 @@
 
 VERSION ?= 1.0.0
 
-.PHONY: help build app install run test cli icon release clean
+.PHONY: help build app install run test cli icon site release clean
 
 help:
 	@echo "make build     Compile everything (debug)"
@@ -12,6 +12,7 @@ help:
 	@echo "make run       Build the app and open it from build/"
 	@echo "make cli       Build the sweep command-line tool to build/sweep"
 	@echo "make icon      Regenerate the app icon preview in build/AppIcon.iconset"
+	@echo "make site      Open the website (docs/) in your browser"
 	@echo "make release   Signed, notarized DMG (needs SIGN_IDENTITY and VERSION)"
 	@echo "make clean     Remove build output"
 
@@ -37,6 +38,9 @@ icon:
 	rm -rf build/AppIcon.iconset
 	swift scripts/make-icon.swift build/AppIcon.iconset
 	open build/AppIcon.iconset/icon_512x512@2x.png
+
+site:
+	open docs/index.html
 
 release:
 	VERSION=$(VERSION) ./scripts/release.sh

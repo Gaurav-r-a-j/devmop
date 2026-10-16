@@ -71,6 +71,12 @@ make icon         # preview the generated app icon
 
 Layout: `Sources/SweepCore` (scanner, rules, safety checks, cleaner), `Sources/sweep` (CLI), `Sources/DevSweep` (SwiftUI app), `Tests/SweepCoreTests`.
 
+## Website
+
+The site lives in `docs/` as plain HTML and CSS, with no build step. Preview it with `make site`.
+
+To publish it on GitHub Pages: push the repository, then in **Settings › Pages** choose **Deploy from a branch**, branch `main`, folder `/docs`. Replace `YOUR-USERNAME` in `docs/index.html` with your GitHub user or organisation so the Download and GitHub links work.
+
 ## Releasing
 
 One-time setup with an Apple Developer account:

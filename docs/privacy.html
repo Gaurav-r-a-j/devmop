@@ -1,0 +1,51 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <title>Privacy — DevSweep</title>
+  <link rel="icon" href="assets/favicon-64.png" type="image/png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Main">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img src="assets/favicon-64.png" alt="" width="22" height="22">DevSweep</a>
+      <a class="pill" href="index.html#download">Download</a>
+    </div>
+  </nav>
+  <main class="page">
+    <div class="wrap">
+      <h1 class="section-title">Privacy</h1>
+      <p class="lede">DevSweep runs entirely on your Mac. Nothing you scan or clean is sent anywhere.</p>
+
+      <h2>What leaves your Mac</h2>
+      <p>Nothing. DevSweep has no accounts, analytics, crash reporting or network requests.</p>
+
+      <h2>What it reads</h2>
+      <p>Folder and file names, sizes and dates, so it can show where space goes. It doesn’t open your documents, mail or messages. To find exact duplicates it compares file contents, on your Mac only.</p>
+
+      <h2>Why it asks for Full Disk Access</h2>
+      <p>macOS protects Library, Mail, Messages, Photos and the Trash. Without access DevSweep can’t measure them, and simply skips them.</p>
+
+      <h2>Tools it runs</h2>
+      <p>git, xcrun simctl, docker, brew, pnpm, npm, tmutil, diskutil, lsof and qlmanage — to read information, or to clean when you confirm.</p>
+
+      <h2>What it stores</h2>
+      <ul>
+        <li>Your settings, in <code>~/Library/Preferences/app.devsweep.DevSweep.plist</code>.</li>
+        <li>The last scan and a history of cleanups, in <code>~/Library/Application Support/DevSweep</code>.</li>
+      </ul>
+      <p>Delete either at any time; DevSweep starts fresh.</p>
+    </div>
+  </main>
+  <footer>
+    <div class="wrap">
+      <span>© 2026 DevSweep</span>
+      <a href="index.html">Home</a>
+      <span class="spacer">Made for Mac.</span>
+    </div>
+  </footer>
+</body>
+</html>
