@@ -15,9 +15,12 @@
   <script src="main.js" defer></script>
 </head>
 <body>
+  <a class="skip" href="#features">Skip to features</a>
+
   <nav class="nav" aria-label="Main">
     <div class="wrap">
       <a class="brand" href="#top"><img src="assets/favicon-64.png" alt="" width="22" height="22">DevSweep</a>
+      <span class="links"><a href="#how">How it works</a></span>
       <span class="links"><a href="#features">Features</a></span>
       <span class="links"><a href="#safety">Safety</a></span>
       <span class="links"><a href="#faq">FAQ</a></span>
@@ -28,17 +31,18 @@
   <main id="top">
     <header class="hero">
       <div class="wrap">
-        <img class="icon" src="assets/icon-512.png" alt="DevSweep app icon" width="128" height="128" fetchpriority="high">
-        <h1 class="headline">Your Mac, minus the clutter.</h1>
-        <p class="subhead">DevSweep finds the gigabytes your dev tools leave behind — old <code>node_modules</code>, build folders, caches, simulators, Docker — and clears them without touching your work.</p>
-        <div class="actions">
+        <div class="hero-logo"><svg class="logo" viewBox="0 0 100 100" role="img" aria-label="DevSweep"><defs><linearGradient id="lg-bg" x1="0" y1="0" x2="1" y2="1"><stop offset="0" stop-color="#34c7d9"/><stop offset=".55" stop-color="#386bf5"/><stop offset="1" stop-color="#6b48e6"/></linearGradient><linearGradient id="lg-hl" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#fff" stop-opacity=".22"/><stop offset="1" stop-color="#fff" stop-opacity="0"/></linearGradient><filter id="lg-glow" x="-50%" y="-50%" width="200%" height="200%"><feGaussianBlur stdDeviation="1.6"/></filter></defs><rect x="10" y="10" width="80" height="80" rx="18" fill="url(#lg-bg)"/><rect x="10" y="10" width="80" height="80" rx="18" fill="url(#lg-hl)"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity=".18" stroke-width="8.8"/><circle class="seg seg-1" cx="50" cy="50.8" r="23.2" fill="none" stroke="#ffffff" stroke-width="8.8" pathLength="360" stroke-dasharray="96 360" stroke-dashoffset="-168" style="--len:96"/><circle class="seg seg-2" cx="50" cy="50.8" r="23.2" fill="none" stroke="#ffd666" stroke-width="8.8" pathLength="360" stroke-dasharray="65 360" stroke-dashoffset="-98" style="--len:65"/><circle class="seg seg-3" cx="50" cy="50.8" r="23.2" fill="none" stroke="#ff9f0a" stroke-width="8.8" pathLength="360" stroke-dasharray="51 360" stroke-dashoffset="-42" style="--len:51"/><circle class="seg seg-4" cx="50" cy="50.8" r="23.2" fill="none" stroke="#7df1ff" stroke-width="8.8" pathLength="360" stroke-dasharray="29 360" stroke-dashoffset="-8" style="--len:29"/><g class="trail"><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.650" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-268"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.627" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-270"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.604" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-272"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.582" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-274"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.560" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-276"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.538" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-278"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.517" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-280"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.496" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-282"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.475" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-284"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.455" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-286"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.435" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-288"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.415" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-290"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.396" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-292"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.377" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-294"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.358" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-296"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.340" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-298"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.322" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-300"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.304" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-302"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.287" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-304"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.270" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-306"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.254" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-308"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.238" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-310"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.222" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-312"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.207" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-314"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.192" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-316"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.178" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-318"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.164" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-320"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.150" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-322"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.137" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-324"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.124" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-326"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.112" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-328"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.100" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-330"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.089" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-332"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.078" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-334"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.068" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-336"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.059" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-338"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.049" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-340"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.041" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-342"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.033" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-344"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.026" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-346"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.019" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-348"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.014" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-350"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.009" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-352"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.004" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-354"/><circle cx="50" cy="50.8" r="23.2" fill="none" stroke="#fff" stroke-opacity="0.001" stroke-width="4.4" pathLength="360" stroke-dasharray="2.6 360" stroke-dashoffset="-356"/></g><path class="brackets" d="M45.60 46.00L40.80 50.80L45.60 55.60M54.40 46.00L59.20 50.80L54.40 55.60M51.76 45.04L48.24 56.56" fill="none" stroke="#fff" stroke-width="2.56" stroke-linecap="round" stroke-linejoin="round"/><g class="spark spark-main" style="transform-origin:48.54px 27.65px"><path d="M48.54 18.05C47.46 26.56 47.46 26.56 38.94 27.65C47.46 28.73 47.46 28.73 48.54 37.25C49.63 28.73 49.63 28.73 58.14 27.65C49.63 26.56 49.63 26.56 48.54 18.05Z" fill="#fff" filter="url(#lg-glow)" opacity=".9"/><path d="M48.54 18.05C47.46 26.56 47.46 26.56 38.94 27.65C47.46 28.73 47.46 28.73 48.54 37.25C49.63 28.73 49.63 28.73 58.14 27.65C49.63 26.56 49.63 26.56 48.54 18.05Z" fill="#fff"/></g><path class="spark spark-small" style="transform-origin:72.74px 29.46px" d="M72.74 25.86C72.33 29.05 72.33 29.05 69.14 29.46C72.33 29.86 72.33 29.86 72.74 33.06C73.14 29.86 73.14 29.86 76.34 29.46C73.14 29.05 73.14 29.05 72.74 25.86Z" fill="#fff" opacity=".9"/></svg></div>
+        <h1 class="headline enter" style="--delay: 0.15s">Your Mac, minus the clutter.</h1>
+        <p class="subhead enter" style="--delay: 0.3s">DevSweep finds the gigabytes your dev tools leave behind — old <code>node_modules</code>, build folders, caches, simulators, Docker — and clears them without touching your work.</p>
+        <div class="actions enter" style="--delay: 0.45s">
           <a class="pill" href="#download">Download for Mac</a>
           <a class="chevron" href="https://github.com/YOUR-USERNAME/devsweep">View on GitHub</a>
         </div>
-        <p class="fineprint">macOS 14 Sonoma or later · Apple silicon and Intel</p>
+        <p class="fineprint enter" style="--delay: 0.55s">macOS 14 Sonoma or later · Apple silicon and Intel</p>
 
-        <div class="window" role="img" aria-label="The DevSweep window showing 160 GB that can be freed, split into project files, caches, simulators and Docker.">
-          <div class="window-bar"><span></span><span></span><span></span><b>Overview</b><em>Scanned just now</em></div>
+        <scan-window class="window enter" style="--delay: 0.7s" role="img" aria-label="The DevSweep window finishing a scan: 160 GB can be freed, split into project files, caches, simulators and Docker.">
+          <div class="window-bar"><span></span><span></span><span></span><b>Overview</b><em class="status" data-busy="Measuring 386 folders…">Scanned just now</em></div>
+          <div class="scan-line"></div>
           <div class="window-body">
             <div class="window-side">
               <div class="on">Overview</div>
@@ -54,9 +58,11 @@
               <div>Apps</div>
             </div>
             <div class="window-main">
-              <div class="card">
+              <div class="card step-in" style="--i: 0">
                 <h5>Macintosh HD <small>87.5 GB available of 494 GB</small></h5>
-                <storage-bar><span style="--share:7.69%;background:var(--seg-projects)"></span><span style="--share:8.70%;background:var(--seg-caches)"></span><span style="--share:2.23%;background:var(--seg-system)"></span><span style="--share:7.29%;background:var(--seg-sims)"></span><span style="--share:8.70%;background:var(--seg-docker)"></span><span style="--share:24.29%;background:var(--seg-data)"></span><span style="--share:16.19%;background:var(--seg-library)"></span><span style="--share:7.29%;background:var(--seg-macos)"></span></storage-bar>
+                <storage-bar>
+                  <span style="--share:7.69%;background:var(--seg-projects)"></span><span style="--share:8.70%;background:var(--seg-caches)"></span><span style="--share:2.23%;background:var(--seg-system)"></span><span style="--share:7.29%;background:var(--seg-sims)"></span><span style="--share:8.70%;background:var(--seg-docker)"></span><span style="--share:24.29%;background:var(--seg-data)"></span><span style="--share:16.19%;background:var(--seg-library)"></span><span style="--share:7.29%;background:var(--seg-macos)"></span>
+                </storage-bar>
                 <div class="legend">
                   <span><i class="dot" style="background:var(--seg-projects)"></i>Project build files</span>
                   <span><i class="dot" style="background:var(--seg-caches)"></i>Developer caches</span>
@@ -66,20 +72,20 @@
                   <span><i class="dot" style="background:var(--seg-macos)"></i>macOS</span>
                 </div>
               </div>
-              <div class="card">
+              <div class="card step-in" style="--i: 1">
                 <span class="muted">You can free up to</span>
-                <div class="big-number">160 GB</div>
+                <div class="big-number"><count-up data-to="160">160</count-up> GB</div>
                 <span class="muted">Recommended now: 58 GB from safe caches and projects untouched for 60+ days.</span>
               </div>
               <div class="mini-grid">
-                <div class="card"><b>38 GB</b><span class="muted">Project files</span></div>
-                <div class="card"><b>43 GB</b><span class="muted">Caches</span></div>
-                <div class="card"><b>36 GB</b><span class="muted">Simulators</span></div>
-                <div class="card"><b>43 GB</b><span class="muted">Docker</span></div>
+                <div class="card step-in" style="--i: 2"><b>38 GB</b><span class="muted">Project files</span></div>
+                <div class="card step-in" style="--i: 3"><b>43 GB</b><span class="muted">Caches</span></div>
+                <div class="card step-in" style="--i: 4"><b>36 GB</b><span class="muted">Simulators</span></div>
+                <div class="card step-in" style="--i: 5"><b>43 GB</b><span class="muted">Docker</span></div>
               </div>
             </div>
           </div>
-        </div>
+        </scan-window>
       </div>
     </header>
 
@@ -89,7 +95,80 @@
       </div>
     </section>
 
-    <section class="alt" id="features">
+    <section class="alt story" id="how">
+      <div class="wrap">
+        <p class="eyebrow">How it works</p>
+        <h2 class="section-title">Four steps. Nothing hidden.</h2>
+
+        <story-steps class="story-grid">
+          <div class="story-device" aria-hidden="true">
+            <div class="device">
+              <div class="window-bar small"><span></span><span></span><span></span></div>
+              <div class="screens">
+                <div class="screen" data-screen="1">
+                  <div class="screen-title">Scanning your Mac</div>
+                  <div class="progress"><i></i></div>
+                  <p class="muted tiny">Measuring 214 of 386 folders…</p>
+                  <ul class="found">
+                    <li><code>node_modules</code><b>2.37 GB</b></li>
+                    <li><code>.next</code><b>1.82 GB</b></li>
+                    <li>pnpm store<b>9.4 GB</b></li>
+                    <li>iPhone 16 Pro simulator<b>4.3 GB</b></li>
+                  </ul>
+                </div>
+                <div class="screen" data-screen="2">
+                  <div class="screen-title">What's safe to remove</div>
+                  <ul class="found">
+                    <li>npm cache<span class="tag green">Safe</span></li>
+                    <li>Xcode DerivedData<span class="tag green">Safe</span></li>
+                    <li><code>node_modules</code> · 6 months old<span class="tag blue">Rebuildable</span></li>
+                    <li>iPhone backup<span class="tag orange">Review</span></li>
+                    <li><code>.git</code><span class="tag gray">Never</span></li>
+                  </ul>
+                </div>
+                <div class="screen" data-screen="3">
+                  <div class="screen-title">Clean 23 items</div>
+                  <p class="muted tiny">Frees about 58 GB</p>
+                  <ul class="found">
+                    <li>Projects<b>21 items</b></li>
+                    <li>Caches<b>2 items</b></li>
+                  </ul>
+                  <div class="segmented"><span class="on">Move to Trash</span><span>Delete permanently</span></div>
+                  <div class="sheet-buttons"><span class="ghost">Cancel</span><span class="primary">Move to Trash</span></div>
+                </div>
+                <div class="screen" data-screen="4">
+                  <div class="check-mark"></div>
+                  <div class="screen-title center">Freed 58 GB</div>
+                  <p class="muted tiny center">Your disk has 146 GB available.</p>
+                  <div class="shrink-bar"><i></i></div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <ol class="story-text">
+            <li data-step="1">
+              <h3>Scan in seconds.</h3>
+              <p>DevSweep walks your projects, caches, simulators and Docker. After the first scan it reads the macOS change log and re-measures only what changed, so rescans take seconds.</p>
+            </li>
+            <li data-step="2">
+              <h3>See what's safe.</h3>
+              <p>Every item gets a clear label: <strong>Safe</strong> caches, <strong>Rebuildable</strong> build folders, things to <strong>Review</strong> like backups — and things it never offers, like <code>.git</code>.</p>
+            </li>
+            <li data-step="3">
+              <h3>Review, then clean.</h3>
+              <p>You see each item and its size before anything happens. Everything checks again right before it's removed, and goes to the Trash first.</p>
+            </li>
+            <li data-step="4">
+              <h3>Get your space back.</h3>
+              <p>DevSweep measures what was really freed — not a guess — and keeps a history with how to rebuild anything you removed.</p>
+            </li>
+          </ol>
+        </story-steps>
+      </div>
+    </section>
+
+    <section id="features">
       <div class="wrap">
         <p class="eyebrow">Features</p>
         <h2 class="section-title">Knows what a project is.</h2>
@@ -99,8 +178,8 @@
           <article class="tile reveal">
             <h3>Every build folder, project by project.</h3>
             <p><code>node_modules</code>, <code>.next</code>, <code>dist</code>, <code>target</code>, <code>.venv</code>, Pods and more across 15 ecosystems. Folders like <code>dist</code> only count when git ignores them.</p>
-            <div class="demo">
-              <div class="rows">
+            <div class="demo" aria-hidden="true">
+              <div class="rows cascade">
                 <div><span><code>node_modules ×12</code><small>web-dashboard · 19 hours ago</small></span><span class="tag blue">Rebuildable</span></div>
                 <div><span><code>.next ×2</code><small>marketing-site · 3 hours ago</small></span><span class="tag blue">Rebuildable</span></div>
                 <div><span><code>.venv</code><small>ml-experiments · 2 weeks ago</small></span><span class="tag blue">Rebuildable</span></div>
@@ -111,12 +190,12 @@
 
           <article class="tile reveal">
             <h3>Sizes that tell the truth.</h3>
-            <p>pnpm and APFS share files between folders. A 2.4 GB <code>node_modules</code> that frees <strong>48 MB</strong> is shown as exactly that — and DevSweep tells you to prune the pnpm store instead.</p>
-            <div class="demo">
-              <div class="rows">
-                <div><span><code>node_modules</code><small>Uses 2.37 GB, but most of it is shared</small></span><b>48 MB</b></div>
-                <div><span>pnpm store<small>Packages no project uses any more</small></span><b>9.4 GB</b></div>
-                <div><span>Docker build cache<small>Measured by Docker itself</small></span><b>15.7 GB</b></div>
+            <p>pnpm and APFS share files between folders. A 2.4 GB <code>node_modules</code> that frees <strong>48 MB</strong> is shown as exactly that — and DevSweep points you to the pnpm store instead.</p>
+            <div class="demo" aria-hidden="true">
+              <div class="rows compare">
+                <div><span>Takes up</span><b>2.37 GB</b><i style="--to: 100%"></i></div>
+                <div><span>Deleting frees</span><b>48 MB</b><i style="--to: 2%"></i></div>
+                <div><span>pnpm store prune frees</span><b>9.4 GB</b><i style="--to: 72%"></i></div>
               </div>
             </div>
           </article>
@@ -124,19 +203,44 @@
           <article class="tile wide reveal">
             <h3>Find the servers you forgot to stop.</h3>
             <p>Closed the terminal, but port 8010 is still taken? Processes &amp; Ports lists dev servers, MCP servers and model servers, flags the ones left running on their own, and frees a port in one click.</p>
-            <div class="demo">
-              <div class="rows">
-                <div><span><code>uvicorn worker</code><small>support-bot/api · running for 2 days</small></span><span><span class="tag orange">Leftover</span> <span class="tag blue">:8010</span> <span class="stop" aria-hidden="true">Stop</span></span></div>
-                <div><span><code>orders_mcp.py</code><small>MCP server · running for 3 days</small></span><span><span class="tag orange">Leftover</span> <span class="tag blue">:8090</span> <span class="stop" aria-hidden="true">Stop</span></span></div>
-                <div><span><code>expo start 8082</code><small>delivery-app/mobile</small></span><span><span class="tag blue">:8082</span> <span class="stop" aria-hidden="true">Stop</span></span></div>
+            <div class="demo" aria-hidden="true">
+              <process-demo class="rows procs">
+                <div class="proc victim"><span><code>uvicorn worker</code><small>support-bot/api · running for 2 days</small></span><span><span class="tag orange">Leftover</span> <span class="tag blue">:8010</span> <span class="stop">Stop</span></span></div>
+                <div class="proc"><span><code>orders_mcp.py</code><small>MCP server · running for 3 days</small></span><span><span class="tag orange">Leftover</span> <span class="tag blue">:8090</span> <span class="stop">Stop</span></span></div>
+                <div class="proc"><span><code>expo start 8082</code><small>delivery-app/mobile</small></span><span><span class="tag blue">:8082</span> <span class="stop">Stop</span></span></div>
+                <p class="toast">Port 8010 is free</p>
+              </process-demo>
+            </div>
+          </article>
+
+          <article class="tile reveal">
+            <h3>The whole Mac, explained.</h3>
+            <p>The Storage Map breaks down “System Data” — Library caches, app data, Homebrew, swap, macOS itself — and says what can go, and why.</p>
+            <div class="demo" aria-hidden="true">
+              <div class="rows map">
+                <div><span>Library › Caches<small>Partly cleanable</small></span><b>17.7 GB</b><i style="--to: 60%; background: var(--seg-library)"></i></div>
+                <div><span>Application Support<small>Your data</small></span><b>29.4 GB</b><i style="--to: 100%; background: #475569"></i></div>
+                <div><span>Swap &amp; sleep image<small>Managed by macOS</small></span><b>17.2 GB</b><i style="--to: 58%; background: var(--seg-macos)"></i></div>
+                <div><span>macOS<small>Read-only</small></span><b>12.6 GB</b><i style="--to: 43%; background: #57534e"></i></div>
               </div>
             </div>
           </article>
 
-          <article class="tile third reveal">
-            <h3>The whole Mac, explained.</h3>
-            <p>The Storage Map breaks “System Data” into Library caches, app data, Homebrew, swap and macOS itself — and says what can go and why.</p>
+          <article class="tile reveal">
+            <h3>Run it from your terminal.</h3>
+            <p>The <code>sweep</code> command does everything the app does, with a dry run by default. Script it, or check a Mac you SSH into.</p>
+            <div class="demo" aria-hidden="true">
+              <type-terminal class="terminal">
+                <p class="cmd" data-type="sweep scan"><span class="prompt">~ %</span> <span class="typed">sweep scan</span></p>
+                <p class="out">Reclaimable  160 GB  (projects 38 GB, caches 43 GB…)</p>
+                <p class="out">Scanned in 9.5s — measured 6 changed folders</p>
+                <p class="cmd" data-type="sweep ps"><span class="prompt">~ %</span> <span class="typed">sweep ps</span></p>
+                <p class="out">28430  uvicorn worker   :8010 · leftover</p>
+                <p class="out">49981  tsx watch        leftover</p>
+              </type-terminal>
+            </div>
           </article>
+
           <article class="tile third reveal">
             <h3>Caches, cleaned properly.</h3>
             <p>npm, pnpm, Yarn, Bun, Homebrew, Gradle, Xcode, Docker and browsers — using each tool’s own clean command where one exists.</p>
@@ -145,11 +249,25 @@
             <h3>Apps, without leftovers.</h3>
             <p>Uninstall apps with their caches and settings, and find data left behind by apps you deleted long ago.</p>
           </article>
+          <article class="tile third reveal">
+            <h3>Duplicates, carefully.</h3>
+            <p>Exact copies are matched by content, not name. One copy is always kept.</p>
+          </article>
         </div>
+
+        <h3 class="more-title reveal">And the details that make it feel finished.</h3>
+        <ul class="more reveal">
+          <li><b>Lives in your menu bar.</b>See what can be freed and stop a dev server without opening the window.</li>
+          <li><b>Checks in weekly.</b>A quiet background scan, and a notification only when more than 5 GB can go.</li>
+          <li><b>iCloud downloads.</b>Remove local copies of files already safe in iCloud. They download again when opened.</li>
+          <li><b>AI models.</b>Hugging Face, Ollama and LM Studio downloads, listed for review.</li>
+          <li><b>Old Node versions.</b>nvm versions you don't use, keeping your default and the newest.</li>
+          <li><b>History.</b>Every cleanup, with how to rebuild what was removed.</li>
+        </ul>
       </div>
     </section>
 
-    <section id="safety">
+    <section class="alt" id="safety">
       <div class="wrap">
         <p class="eyebrow">Safety</p>
         <h2 class="section-title">Careful with your work.</h2>
@@ -165,25 +283,25 @@
       </div>
     </section>
 
-    <section class="alt center" id="download">
+    <section class="center" id="download">
       <div class="wrap">
-        <p class="eyebrow">Download</p>
+        <img class="download-icon reveal" src="assets/icon-256.png" alt="" width="96" height="96" loading="lazy">
         <h2 class="section-title">Get DevSweep.</h2>
         <p class="lede">For macOS 14 Sonoma and later, on Apple silicon and Intel Macs.</p>
         <div class="actions">
           <a class="pill" href="https://github.com/YOUR-USERNAME/devsweep/releases/latest">Download DevSweep.dmg</a>
         </div>
         <ol class="steps">
-          <li><b>Open the download</b><span>Drag DevSweep into your Applications folder.</span></li>
-          <li><b>Open it the first time</b><span>If macOS says it can’t check the app, open <kbd>System Settings</kbd> › Privacy &amp; Security and click <kbd>Open Anyway</kbd>. You only do this once.</span></li>
-          <li><b>Allow Full Disk Access</b><span>DevSweep walks you through it, so it can measure Library, Mail, Photos and the Trash.</span></li>
+          <li class="reveal"><b>Open the download</b><span>Drag DevSweep into your Applications folder.</span></li>
+          <li class="reveal"><b>Open it the first time</b><span>If macOS says it can’t check the app, open <kbd>System Settings</kbd> › Privacy &amp; Security and click <kbd>Open Anyway</kbd>. You only do this once.</span></li>
+          <li class="reveal"><b>Allow Full Disk Access</b><span>DevSweep walks you through it, so it can measure Library, Mail, Photos and the Trash.</span></li>
         </ol>
         <p class="fineprint">Prefer to build it yourself? Clone the repository and run:</p>
         <copy-command><code>make install</code></copy-command>
       </div>
     </section>
 
-    <section id="faq">
+    <section class="alt" id="faq">
       <div class="wrap">
         <h2 class="section-title center">Questions</h2>
         <div class="faq">
@@ -198,6 +316,10 @@
           <details name="faq">
             <summary>Why does macOS warn me the first time?</summary>
             <p>macOS shows that message for apps downloaded outside the App Store that aren’t notarized yet. Clicking Open Anyway once in Privacy &amp; Security lets it run, and it opens normally from then on.</p>
+          </details>
+          <details name="faq">
+            <summary>Can it stop servers I left running?</summary>
+            <p>Yes. Processes &amp; Ports shows dev servers, MCP servers and model servers with their ports, marks the ones whose terminal is gone, and stops them — re-checking each one first so it never hits a different program.</p>
           </details>
           <details name="faq">
             <summary>What does Full Disk Access let it do?</summary>
