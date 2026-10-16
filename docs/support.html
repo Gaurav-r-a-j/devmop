@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="theme-color" content="#ffffff" media="(prefers-color-scheme: light)">
+  <meta name="theme-color" content="#000000" media="(prefers-color-scheme: dark)">
+  <title>Support — DevSweep</title>
+  <meta name="description" content="Help with installing, granting access, troubleshooting and uninstalling DevSweep.">
+  <link rel="icon" href="assets/favicon-64.png" type="image/png">
+  <link rel="apple-touch-icon" href="assets/icon-256.png">
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <nav class="nav" aria-label="Main">
+    <div class="wrap">
+      <a class="brand" href="index.html"><img src="assets/favicon-64.png" alt="" width="22" height="22">DevSweep</a>
+      <span class="links"><a href="index.html#features">Features</a></span>
+      <span class="links"><a href="support.html">Support</a></span>
+      <span class="links"><a href="changelog.html">What’s New</a></span>
+      <a class="pill" href="index.html#download">Download</a>
+    </div>
+  </nav>
+  <main class="page">
+    <div class="wrap">
+      <p class="page-eyebrow">Support</p>
+      <h1 class="page-title">How can we help?</h1>
+      <p class="page-lede">Answers to the questions people ask most, and how to reach us when something isn’t right.</p>
+
+      <div class="help-grid">
+        <a class="help-card" href="#first-launch"><b>Opening DevSweep the first time</b><span>What to do when macOS can’t check the app.</span></a>
+        <a class="help-card" href="#access"><b>Full Disk Access</b><span>Why it’s needed and how to turn it on.</span></a>
+        <a class="help-card" href="#trouble"><b>Troubleshooting</b><span>Sizes, scans and items that won’t clean.</span></a>
+        <a class="help-card" href="#uninstall"><b>Uninstall DevSweep</b><span>Remove the app and everything it stores.</span></a>
+      </div>
+
+      <h2 id="first-launch">Opening DevSweep the first time</h2>
+      <p>If macOS says it can’t verify DevSweep, click <b>Done</b>, open <b>System Settings › Privacy &amp; Security</b>, scroll down and click <b>Open Anyway</b> next to DevSweep, then enter your Mac password. You only do this once.</p>
+
+      <h2 id="access">Full Disk Access</h2>
+      <p>macOS protects Library, Mail, Photos and the Trash. To let DevSweep measure them:</p>
+      <ol>
+        <li>Open <b>System Settings › Privacy &amp; Security › Full Disk Access</b>.</li>
+        <li>Turn on DevSweep, or click <b>+</b> and choose it in Applications.</li>
+        <li>Switch back to DevSweep. It notices and scans again.</li>
+      </ol>
+      <p>After updating DevSweep, if access stops working, turn it off and on again in that list.</p>
+
+      <h2 id="trouble">Troubleshooting</h2>
+      <h3>A project says it’s “in use”</h3>
+      <p>Something is running inside it, such as a dev server. The message names the process. Stop it in <b>Processes &amp; Ports</b>, then clean again.</p>
+      <h3>The pnpm store still looks big after pruning</h3>
+      <p>Pruning only removes packages no project uses. DevSweep remembers the size after pruning and only shows what’s been added since.</p>
+      <h3>Some items were “left in place”</h3>
+      <p>Read-only, locked or other users’ files are never forced. Everything else in that item was removed.</p>
+      <h3>Freed space doesn’t show up right away</h3>
+      <p>Items in the Trash still use space until it’s emptied, and macOS can take a little while to release space held by Time Machine local snapshots.</p>
+      <h3>Start fresh</h3>
+      <p>Quit DevSweep and delete <code>~/Library/Application Support/DevSweep</code>. Your next scan starts from scratch.</p>
+
+      <h2 id="uninstall">Uninstall DevSweep</h2>
+      <ol>
+        <li>Quit DevSweep from its menu bar icon.</li>
+        <li>Turn off <b>Open at login</b> in its Settings, and remove it from Full Disk Access.</li>
+        <li>Move DevSweep from Applications to the Trash.</li>
+        <li>Delete <code>~/Library/Application Support/DevSweep</code> and <code>~/Library/Preferences/app.devsweep.DevSweep.plist</code>.</li>
+      </ol>
+
+      <h2>Still stuck?</h2>
+      <p><a href="https://github.com/YOUR-USERNAME/devsweep/issues">Report a problem on GitHub</a> or email <a href="mailto:YOUR-EMAIL">YOUR-EMAIL</a>. Include your macOS version, your Mac (Apple silicon or Intel) and what you expected to happen.</p>
+    </div>
+  </main>
+  <footer class="site-footer">
+    <div class="wrap">
+      <div class="footer-cols">
+        <div>
+          <h2>Product</h2>
+          <a href="index.html#features">Features</a>
+          <a href="index.html#safety">Safety</a>
+          <a href="index.html#download">Download</a>
+          <a href="changelog.html">What’s New</a>
+        </div>
+        <div>
+          <h2>Support</h2>
+          <a href="support.html">Help &amp; Troubleshooting</a>
+          <a href="index.html#faq">FAQ</a>
+          <a href="https://github.com/YOUR-USERNAME/devsweep/issues">Report a Problem</a>
+          <a href="security.html">Security</a>
+        </div>
+        <div>
+          <h2>Legal</h2>
+          <a href="privacy.html">Privacy Policy</a>
+          <a href="terms.html">Terms of Use</a>
+        </div>
+      </div>
+      <p class="legal-line">Apple, Mac, macOS and Apple silicon are trademarks of Apple Inc., registered in the U.S. and other countries. DevSweep is an independent app and is not affiliated with or endorsed by Apple Inc.</p>
+      <div class="footer-bottom">
+        <span>Copyright © 2026 YOUR-NAME. All rights reserved.</span>
+        <span><a href="privacy.html">Privacy Policy</a> · <a href="terms.html">Terms of Use</a> · <a href="sitemap.xml">Site Map</a></span>
+      </div>
+    </div>
+  </footer>
+</body>
+</html>
