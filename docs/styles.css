@@ -522,13 +522,11 @@ story-steps[data-active] .story-text li[data-current] { opacity: 1; }
 /* Safety */
 
 .tiers { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-top: 48px; }
-.tier { background: color-mix(in srgb, var(--tier) 11%, var(--tile-bg)); border-radius: 18px; padding: 24px; }
-@media (prefers-color-scheme: dark) {
-  .tier { background: color-mix(in srgb, var(--tier) 16%, var(--tile-bg)); }
-}
-.tier-label { display: inline-block; font-size: 13px; font-weight: 600; color: var(--tier-text, var(--tier)); padding: 3px 10px; border-radius: 980px; background: color-mix(in srgb, var(--tier) 20%, transparent); }
-.tier p { margin: 12px 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; }
-.tier small { color: var(--text-secondary); font-size: 13px; }
+.tier { background: var(--tier); color: #fff; border-radius: 18px; padding: 24px; }
+.tier-label { display: inline-block; font-size: 13px; font-weight: 600; color: #fff; padding: 3px 10px; border-radius: 980px; background: rgb(255 255 255 / 0.22); }
+.tier p { margin: 14px 0 8px; font-size: 17px; font-weight: 600; line-height: 1.3; color: #fff; }
+.tier small { color: rgb(255 255 255 / 0.82); font-size: 13px; }
+.tier code { color: #fff; }
 @media (max-width: 860px) { .tiers { grid-template-columns: repeat(2, 1fr); } }
 @media (max-width: 520px) { .tiers { grid-template-columns: 1fr; } }
 
@@ -593,21 +591,3 @@ safety-check { display: block; }
 @media (prefers-color-scheme: dark) {
   .hero-stage::before { opacity: 0.7; }
 }
-
-/* Accent tiles */
-
-.tile.tint-blue { background: color-mix(in srgb, var(--button) 9%, var(--tile-bg)); }
-.tile.tint-blue h3 { color: var(--link); }
-
-.tile.dark { background: #0d1b33; color: #f5f5f7; }
-.tile.dark p { color: #a1a1a6; }
-.tile.dark p strong, .tile.dark code { color: #f5f5f7; }
-.tile.dark .rows { background: rgb(255 255 255 / 0.06); box-shadow: 0 0 0 0.5px rgb(255 255 255 / 0.12); }
-.tile.dark .procs .proc + .proc { border-top-color: rgb(255 255 255 / 0.1); }
-.tile.dark .rows small { color: #86868b; }
-.tile.dark .stop { background: rgb(255 255 255 / 0.1); color: #f5f5f7; border-color: rgb(255 255 255 / 0.18); }
-.tile.dark .tag.orange { color: #ffb340; }
-.tile.dark .tag.blue { color: #64b5ff; }
-.tile.dark .toast { background: #f5f5f7; color: #1d1d1f; }
-
-.tile.tint-green { background: color-mix(in srgb, #34c759 10%, var(--tile-bg)); }
