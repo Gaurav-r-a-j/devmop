@@ -40,7 +40,7 @@ struct AreaDetailView: View {
 
             if rows.isEmpty {
                 ContentUnavailableView("Nothing to List", systemImage: "square.stack.3d.up.slash",
-                                       description: Text("This area isn't made of separate folders DevSweep can list."))
+                                       description: Text("This area isn't made of separate folders DevMop can list."))
                     .frame(height: 220)
             } else {
                 List(rows.prefix(60)) { row in

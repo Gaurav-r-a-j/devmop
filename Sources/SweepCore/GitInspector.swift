@@ -53,7 +53,7 @@ public enum GitInspector {
     public static func ignoredPaths(_ candidates: [String], root: String) -> Set<String> {
         guard !candidates.isEmpty else { return [] }
         let list = candidates.joined(separator: "\n")
-        let input = FileManager.default.temporaryDirectory.appendingPathComponent("devsweep-ignore-\(UUID().uuidString)")
+        let input = FileManager.default.temporaryDirectory.appendingPathComponent("devmop-ignore-\(UUID().uuidString)")
         guard (try? list.write(to: input, atomically: true, encoding: .utf8)) != nil else { return [] }
         defer { try? FileManager.default.removeItem(at: input) }
 

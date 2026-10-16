@@ -1,4 +1,4 @@
-# DevSweep
+# DevMop
 
 A native macOS app that shows where your disk space goes and safely frees what you don't need — built first for developers, useful for every Mac.
 
@@ -10,7 +10,7 @@ A native macOS app that shows where your disk space goes and safely frees what y
 
 ## Install
 
-Download the latest DMG from Releases, open it and drag DevSweep to Applications. Then give it **Full Disk Access** in System Settings › Privacy & Security, so it can measure Library, Mail, Photos and the Trash.
+Download the latest DMG from Releases, open it and drag DevMop to Applications. Then give it **Full Disk Access** in System Settings › Privacy & Security, so it can measure Library, Mail, Photos and the Trash.
 
 To build from source (macOS 14+, Xcode 16+):
 
@@ -19,7 +19,7 @@ make install      # build, install to /Applications and open
 make help         # every command
 ```
 
-## What DevSweep deletes — and never deletes
+## What DevMop deletes — and never deletes
 
 Nothing is deleted until you review the list and confirm. Every item is checked again right before it's removed.
 
@@ -38,26 +38,26 @@ Nothing is deleted until you review the list and confirm. Every item is checked 
 
 ## Privacy
 
-Nothing leaves your Mac. DevSweep has no analytics, no accounts and makes no network requests. See [PRIVACY.md](PRIVACY.md).
+Nothing leaves your Mac. DevMop has no analytics, no accounts and makes no network requests. See [PRIVACY.md](PRIVACY.md).
 
-## Uninstall DevSweep
+## Uninstall DevMop
 
 1. Quit it from the menu bar icon.
 2. Turn off **Open at login** in its Settings, and remove it from Full Disk Access.
-3. Move DevSweep to the Trash, then remove its data:
+3. Move DevMop to the Trash, then remove its data:
 
 ```sh
-rm -rf ~/Library/Application\ Support/DevSweep
-defaults delete app.devsweep.DevSweep
+rm -rf ~/Library/Application\ Support/DevMop
+defaults delete app.devmop.DevMop
 ```
 
 ## Command line
 
 ```sh
 make cli
-build/sweep scan                                 # report, nothing is deleted
-build/sweep clean --inactive 90                  # show what would be cleaned
-build/sweep clean --inactive 90 --caches --yes   # clean it (to the Trash)
+build/mop scan                                 # report, nothing is deleted
+build/mop clean --inactive 90                  # show what would be cleaned
+build/mop clean --inactive 90 --caches --yes   # clean it (to the Trash)
 ```
 
 ## Development
@@ -69,7 +69,7 @@ make run          # build the app and open it from build/
 make icon         # preview the generated app icon
 ```
 
-Layout: `Sources/SweepCore` (scanner, rules, safety checks, cleaner), `Sources/sweep` (CLI), `Sources/DevSweep` (SwiftUI app), `Tests/SweepCoreTests`.
+Layout: `Sources/SweepCore` (scanner, rules, safety checks, cleaner), `Sources/mop` (CLI), `Sources/DevMop` (SwiftUI app), `Tests/SweepCoreTests`.
 
 ## Website
 
@@ -82,7 +82,7 @@ To publish it on GitHub Pages: push the repository, then in **Settings › Pages
 One-time setup with an Apple Developer account:
 
 ```sh
-xcrun notarytool store-credentials devsweep-notary --apple-id you@example.com --team-id TEAMID
+xcrun notarytool store-credentials devmop-notary --apple-id you@example.com --team-id TEAMID
 ```
 
 Each release:
@@ -91,4 +91,4 @@ Each release:
 SIGN_IDENTITY="Developer ID Application: Your Name (TEAMID)" make release VERSION=1.0.0
 ```
 
-This runs the tests, builds a universal app with Hardened Runtime, notarizes and staples the app and the DMG, checks them with Gatekeeper, archives the dSYMs, and prints the DMG's SHA-256. DevSweep can't ship on the Mac App Store because the sandbox blocks the folder access a cleaner needs.
+This runs the tests, builds a universal app with Hardened Runtime, notarizes and staples the app and the DMG, checks them with Gatekeeper, archives the dSYMs, and prints the DMG's SHA-256. DevMop can't ship on the Mac App Store because the sandbox blocks the folder access a cleaner needs.

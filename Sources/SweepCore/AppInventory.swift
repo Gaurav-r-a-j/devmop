@@ -203,7 +203,7 @@ public enum AppInventory {
         return found
     }
 
-    /// Launch daemons or privileged helpers outside your home folder that DevSweep won't remove.
+    /// Launch daemons or privileged helpers outside your home folder that DevMop won't remove.
     static func systemParts(bundleID: String) -> String? {
         let id = bundleID.lowercased()
         let systemFolders = ["/Library/LaunchDaemons", "/Library/LaunchAgents", "/Library/PrivilegedHelperTools"]

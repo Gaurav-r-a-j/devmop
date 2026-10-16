@@ -616,7 +616,7 @@ public enum History {
     public static var directory: URL {
         if let overrideDirectory { return overrideDirectory }
         let base = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask)[0]
-        return base.appendingPathComponent("DevSweep", isDirectory: true)
+        return base.appendingPathComponent("DevMop", isDirectory: true)
     }
 
     static var file: URL { directory.appendingPathComponent("history.jsonl") }

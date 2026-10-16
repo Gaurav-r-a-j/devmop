@@ -1,4 +1,4 @@
-# DevSweep — a disk cleaner for Mac developers
+# DevMop — a disk cleaner for Mac developers
 
 A Mac app that finds the space developer tools waste (node_modules, build outputs, package-manager caches, Docker, Xcode/simulators, stale git worktrees), shows it per project with "last worked on" context, and lets you pick what to delete — safely.
 

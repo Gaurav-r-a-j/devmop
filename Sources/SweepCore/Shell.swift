@@ -151,7 +151,7 @@ public enum Shell {
 
     /// An empty folder tools run in, so none of them picks up a project's config.
     public static let neutralDirectory: String = {
-        let path = (NSTemporaryDirectory() as NSString).appendingPathComponent("DevSweep-run")
+        let path = (NSTemporaryDirectory() as NSString).appendingPathComponent("DevMop-run")
         try? FileManager.default.createDirectory(atPath: path, withIntermediateDirectories: true)
         return path
     }()

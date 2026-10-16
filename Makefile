@@ -1,17 +1,17 @@
-# DevSweep — run `make help` to see every command.
+# DevMop — run `make help` to see every command.
 
 VERSION ?= 1.0.0
-REPO ?= YOUR-USERNAME/devsweep
+REPO ?= YOUR-USERNAME/devmop
 
 .PHONY: help build app install run test cli icon site og stats release clean
 
 help:
 	@echo "make build     Compile everything (debug)"
 	@echo "make test      Run the test suite"
-	@echo "make app       Build build/DevSweep.app (universal)"
+	@echo "make app       Build build/DevMop.app (universal)"
 	@echo "make install   Build and install to /Applications, then open it"
 	@echo "make run       Build the app and open it from build/"
-	@echo "make cli       Build the sweep command-line tool to build/sweep"
+	@echo "make cli       Build the mop command-line tool to build/mop"
 	@echo "make icon      Regenerate the app icon preview in build/AppIcon.iconset"
 	@echo "make site      Open the website (docs/) in your browser"
 	@echo "make og        Re-render the link preview image docs/assets/og.png"
@@ -32,10 +32,10 @@ install:
 	VERSION=$(VERSION) ./scripts/install.sh
 
 run: app
-	open build/DevSweep.app
+	open build/DevMop.app
 
 cli: app
-	@echo "CLI ready: build/sweep"
+	@echo "CLI ready: build/mop"
 
 icon:
 	rm -rf build/AppIcon.iconset

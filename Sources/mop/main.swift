@@ -15,12 +15,12 @@ struct Options {
 
 func usage() -> Never {
     print("""
-    sweep — find and clean developer disk space
+    mop — find and clean developer disk space
 
     USAGE
-      sweep scan  [--root PATH]... [--inactive DAYS] [--limit N] [--json]
-      sweep clean [--root PATH]... [--inactive DAYS] [--tier safe|rebuildable] [--caches] [--permanent] [--yes]
-      sweep ps    list running dev servers, MCP servers, model servers and leftovers
+      mop scan  [--root PATH]... [--inactive DAYS] [--limit N] [--json]
+      mop clean [--root PATH]... [--inactive DAYS] [--tier safe|rebuildable] [--caches] [--permanent] [--yes]
+      mop ps    list running dev servers, MCP servers, model servers and leftovers
 
     clean only prints the plan unless --yes is given. Items go to the Trash unless --permanent is given.
     """)

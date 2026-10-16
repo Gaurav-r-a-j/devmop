@@ -34,7 +34,7 @@ public enum ChangeJournal {
 
         let flags = FSEventStreamCreateFlags(kFSEventStreamCreateFlagNoDefer)
         guard let stream = FSEventStreamCreate(nil, callback, &context, roots as CFArray, mark.eventID, 0, flags) else { return nil }
-        let queue = DispatchQueue(label: "app.devsweep.fsevents")
+        let queue = DispatchQueue(label: "app.devmop.fsevents")
         FSEventStreamSetDispatchQueue(stream, queue)
         defer {
             FSEventStreamStop(stream)

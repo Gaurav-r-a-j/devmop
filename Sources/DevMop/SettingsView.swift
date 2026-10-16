@@ -77,7 +77,7 @@ struct SettingsView: View {
                         }
                     }
                 } footer: {
-                    Text("Full Disk Access lets DevSweep measure caches inside Library. It only reads folder sizes and never opens your documents, mail or messages.")
+                    Text("Full Disk Access lets DevMop measure caches inside Library. It only reads folder sizes and never opens your documents, mail or messages.")
                         .foregroundStyle(.secondary)
                 }
 
@@ -107,7 +107,7 @@ struct SettingsView: View {
                 try SMAppService.mainApp.unregister()
             }
             loginError = SMAppService.mainApp.status == .requiresApproval
-                ? "Allow DevSweep in System Settings › General › Login Items."
+                ? "Allow DevMop in System Settings › General › Login Items."
                 : nil
         } catch {
             loginError = "Couldn't change this: \(error.localizedDescription)"
@@ -187,7 +187,7 @@ final class Automation {
         isScheduled = model.weeklyScan
         guard model.weeklyScan else { return }
 
-        let scheduler = NSBackgroundActivityScheduler(identifier: "app.devsweep.weekly-scan")
+        let scheduler = NSBackgroundActivityScheduler(identifier: "app.devmop.weekly-scan")
         scheduler.repeats = true
         scheduler.interval = 7 * 24 * 60 * 60
         scheduler.tolerance = 6 * 60 * 60
@@ -220,7 +220,7 @@ final class Automation {
         guard notificationsAvailable else { return }
         let content = UNMutableNotificationContent()
         content.title = "\(formatBytes(bytes)) can be freed"
-        content.body = "Open DevSweep to review build folders and caches you no longer need."
+        content.body = "Open DevMop to review build folders and caches you no longer need."
         let request = UNNotificationRequest(identifier: "weekly-scan", content: content, trigger: nil)
         UNUserNotificationCenter.current().add(request)
     }

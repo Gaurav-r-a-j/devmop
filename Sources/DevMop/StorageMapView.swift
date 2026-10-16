@@ -14,7 +14,7 @@ struct StorageMapView: View {
                 Section {
                     VStack(alignment: .leading, spacing: 12) {
                         SectionHeader(title: "\(formatBytes(disk.used)) used",
-                                      subtitle: "Every part of your disk, what it is, and whether DevSweep can clean it.")
+                                      subtitle: "Every part of your disk, what it is, and whether DevMop can clean it.")
                         StorageBar(segments: StorageBar.segments(items), total: disk.total, height: 22, showsLegend: false)
                         HStack(spacing: 14) {
                             ForEach([AreaStatus.cleanable, .partly, .yourData, .managed, .readOnly], id: \.self) { status in

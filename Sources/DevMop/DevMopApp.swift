@@ -3,12 +3,12 @@ import SwiftUI
 import SweepCore
 
 @main
-struct DevSweepApp: App {
+struct DevMopApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) private var appDelegate
     @State private var model = AppModel()
 
     var body: some Scene {
-        Window("DevSweep", id: "main") {
+        Window("DevMop", id: "main") {
             ContentView()
                 .environment(model)
                 .frame(minWidth: 880, minHeight: 560)
@@ -88,7 +88,7 @@ struct ContentView: View {
             }
             .animation(.snappy, value: model.selection.isEmpty)
         }
-        .navigationTitle(model.section?.title ?? "DevSweep")
+        .navigationTitle(model.section?.title ?? "DevMop")
         .navigationSubtitle(model.statusText)
         .toolbar {
             ToolbarItem(placement: .primaryAction) {
@@ -239,7 +239,7 @@ struct FirstRunView: View {
                     .font(.title.weight(.semibold))
                 Text(model.isScanning
                      ? model.scanMessage
-                     : "DevSweep looks for build folders, package caches, simulators and Docker data, and shows what is safe to remove.")
+                     : "DevMop looks for build folders, package caches, simulators and Docker data, and shows what is safe to remove.")
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
                     .frame(maxWidth: 460)
@@ -277,7 +277,7 @@ struct MenuBarView: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("DevSweep").font(.headline)
+                Text("DevMop").font(.headline)
                 Spacer()
                 Text(model.statusText)
                     .font(.caption)
@@ -340,14 +340,14 @@ struct MenuBarView: View {
                 }
                 .disabled(model.isScanning)
                 Spacer()
-                Button("Open DevSweep") {
+                Button("Open DevMop") {
                     openWindow(id: "main")
                     NSApp.activate(ignoringOtherApps: true)
                 }
                 .buttonStyle(.borderedProminent)
             }
 
-            Button("Quit DevSweep") { NSApp.terminate(nil) }
+            Button("Quit DevMop") { NSApp.terminate(nil) }
                 .buttonStyle(.plain)
                 .foregroundStyle(.secondary)
                 .font(.caption)

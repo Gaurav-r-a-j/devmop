@@ -304,7 +304,7 @@ struct ProcessesView: View {
         Task {
             let owner = await Task.detached { DevProcesses.owner(ofPort: port) }.value
             if let owner {
-                portMessage = "Port \(port) is used by \(owner.name) (PID \(owner.pid)), which isn't a developer tool, so DevSweep won't stop it."
+                portMessage = "Port \(port) is used by \(owner.name) (PID \(owner.pid)), which isn't a developer tool, so DevMop won't stop it."
                     + (owner.name == "ControlCenter" ? " Turn off AirPlay Receiver in System Settings › General › AirDrop & Handoff to free it." : "")
             } else {
                 portMessage = "Nothing is listening on port \(port)."

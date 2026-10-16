@@ -248,7 +248,7 @@ struct CleanSheet: View {
                         }
                     }
                     .disabled(isEmptyingTrash)
-                    Text("Only the items DevSweep just moved are removed. Everything else in your Trash stays.")
+                    Text("Only the items DevMop just moved are removed. Everything else in your Trash stays.")
                         .font(.caption)
                         .foregroundStyle(.tertiary)
                 }

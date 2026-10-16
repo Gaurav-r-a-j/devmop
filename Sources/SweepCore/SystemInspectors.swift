@@ -67,7 +67,7 @@ public enum SimulatorInspector {
 }
 
 public enum DockerInspector {
-    /// The only Docker commands DevSweep runs, keyed by item id.
+    /// The only Docker commands DevMop runs, keyed by item id.
     static let commands: [String: [String]] = [
         "docker-build-cache": ["builder", "prune", "-a", "-f"],
         "docker-images": ["image", "prune", "-a", "-f"],
@@ -199,7 +199,7 @@ public struct TrashEntry: Identifiable, Hashable, Sendable {
 }
 
 public enum TrashInspector {
-    /// Items in your Trash, largest first, or nil when macOS doesn't let DevSweep read it.
+    /// Items in your Trash, largest first, or nil when macOS doesn't let DevMop read it.
     public static func entries() async -> [TrashEntry]? {
         let trash = SystemInfo.trashPath
         guard let names = try? FileManager.default.contentsOfDirectory(atPath: trash) else { return nil }

@@ -11,4 +11,4 @@ First public release.
 - Storage Map and Overview breakdown of the whole disk, with explanations.
 - Trash screen, cleanup history, weekly background scan and menu bar extra.
 - Incremental rescans using the macOS FSEvents log.
-- `sweep` command-line tool.
+- `mop` command-line tool.

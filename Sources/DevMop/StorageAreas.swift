@@ -1,7 +1,7 @@
 import SwiftUI
 import SweepCore
 
-/// Whether DevSweep can clean an area, and why.
+/// Whether DevMop can clean an area, and why.
 enum AreaStatus: String {
     case cleanable, partly, yourData, managed, readOnly
 
@@ -52,7 +52,7 @@ struct AreaInfo {
 
     static let slices: [StorageSlice.Kind: AreaInfo] = [
         .documents: AreaInfo(title: "Documents", color: rgb(52, 199, 89), group: .data, status: .yourData,
-                             why: "Your documents. DevSweep never selects them for you; review big or old ones in Files.",
+                             why: "Your documents. DevMop never selects them for you; review big or old ones in Files.",
                              section: .files, actionTitle: "Review in Files"),
         .desktop: AreaInfo(title: "Desktop", color: rgb(48, 176, 120), group: .data, status: .yourData,
                            why: "Files on your desktop. Screenshots and recordings often pile up here."),
@@ -83,10 +83,10 @@ struct AreaInfo {
                                   section: .caches, actionTitle: "Open Caches"),
 
         .libraryCaches: AreaInfo(title: "Library › Caches", color: rgb(100, 116, 139), group: .library, status: .partly,
-                                 why: "Temporary files apps keep for speed. DevSweep cleans browser and developer caches and caches of apps that aren't running. Apple's own caches (com.apple.*) are left alone: macOS uses them all the time and rebuilds them at once, so deleting them gives back little and can cause glitches.",
+                                 why: "Temporary files apps keep for speed. DevMop cleans browser and developer caches and caches of apps that aren't running. Apple's own caches (com.apple.*) are left alone: macOS uses them all the time and rebuilds them at once, so deleting them gives back little and can cause glitches.",
                                  section: .systemData, actionTitle: "Open System Data"),
         .libraryAppSupport: AreaInfo(title: "Library › Application Support", color: rgb(71, 85, 105), group: .library, status: .yourData,
-                                     why: "Apps' real data: databases, downloads, settings and sometimes your documents. Deleting folders here blindly loses data, so DevSweep only removes an app's data when you uninstall it.",
+                                     why: "Apps' real data: databases, downloads, settings and sometimes your documents. Deleting folders here blindly loses data, so DevMop only removes an app's data when you uninstall it.",
                                      section: .apps, actionTitle: "Open Apps"),
         .libraryContainers: AreaInfo(title: "Library › Containers", color: rgb(51, 65, 85), group: .library, status: .yourData,
                                      why: "Sandboxed apps such as App Store apps, Docker, Mail and Notes keep everything here, including your documents. Data from deleted apps is under Apps › Leftovers.",

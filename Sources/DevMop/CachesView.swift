@@ -300,7 +300,7 @@ struct HistoryRow: View {
     }
 }
 
-/// Explains the parts of System Data DevSweep can't or shouldn't delete, with shortcuts to where macOS manages them.
+/// Explains the parts of System Data DevMop can't or shouldn't delete, with shortcuts to where macOS manages them.
 struct SystemDataGuide: View {
     private struct Tip: Identifiable {
         let id: String

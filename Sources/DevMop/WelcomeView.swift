@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// Shown once on first launch: what DevSweep does and how to grant Full Disk Access.
+/// Shown once on first launch: what DevMop does and how to grant Full Disk Access.
 struct WelcomeView: View {
     @Environment(AppModel.self) private var model
     @Environment(\.dismiss) private var dismiss
@@ -12,7 +12,7 @@ struct WelcomeView: View {
                     .resizable()
                     .frame(width: 64, height: 64)
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Welcome to DevSweep").font(.title.weight(.semibold))
+                    Text("Welcome to DevMop").font(.title.weight(.semibold))
                     Text("See where your disk space goes and free what you don't need.")
                         .foregroundStyle(.secondary)
                 }
@@ -26,12 +26,12 @@ struct WelcomeView: View {
 
             VStack(alignment: .leading, spacing: 10) {
                 Text("One step: allow Full Disk Access").font(.headline)
-                Text("macOS protects Library, Mail, Photos and the Trash. DevSweep needs access to measure them; it only reads sizes and names.")
+                Text("macOS protects Library, Mail, Photos and the Trash. DevMop needs access to measure them; it only reads sizes and names.")
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)
                 VStack(alignment: .leading, spacing: 4) {
                     Text("1. Click Open System Settings.")
-                    Text("2. Turn on DevSweep in the list, or click + and choose it in Applications.")
+                    Text("2. Turn on DevMop in the list, or click + and choose it in Applications.")
                     Text("3. Come back here and click Scan My Mac.")
                 }
                 .font(.callout)

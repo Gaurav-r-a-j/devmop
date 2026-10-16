@@ -26,9 +26,9 @@ struct TrashView: View {
                 ProgressView("Reading the Trash…")
             } else {
                 ContentUnavailableView {
-                    Label("DevSweep Can't Open the Trash", systemImage: "lock.shield")
+                    Label("DevMop Can't Open the Trash", systemImage: "lock.shield")
                 } description: {
-                    Text("macOS only lets apps with Full Disk Access look inside the Trash. Turn DevSweep on in System Settings, then come back.")
+                    Text("macOS only lets apps with Full Disk Access look inside the Trash. Turn DevMop on in System Settings, then come back.")
                 } actions: {
                     Button("Open Settings") { model.openFullDiskAccessSettings() }
                         .buttonStyle(.borderedProminent)

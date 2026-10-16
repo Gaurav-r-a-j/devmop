@@ -116,7 +116,7 @@ struct OverviewView: View {
             if !model.hasFullDiskAccess {
                 Notice(symbol: "lock.shield", color: .orange,
                        title: "Allow Full Disk Access",
-                       message: "Some Library folders can't be measured. Turn DevSweep on in the list, then come back here. DevSweep never reads your documents or messages.",
+                       message: "Some Library folders can't be measured. Turn DevMop on in the list, then come back here. DevMop never reads your documents or messages.",
                        actionTitle: "Open Settings") { model.openFullDiskAccessSettings() }
             }
             if result.dockerRunning == false {
