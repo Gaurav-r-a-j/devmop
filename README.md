@@ -77,7 +77,9 @@ Layout: `Sources/SweepCore` (scanner, rules, safety checks, cleaner), `Sources/m
 
 The site lives in `docs/` as plain HTML and CSS, with no build step. Preview it with `make site`.
 
-To publish it on GitHub Pages: push the repository, then in **Settings › Pages** choose **Deploy from a branch**, branch `main`, folder `/docs`. The site is served at https://gaurav-r-a-j.github.io/devmop/.
+It's hosted on Vercel at https://devmop.vercel.app/. In Vercel, import the GitHub repository, set **Root Directory** to `docs`, **Framework Preset** to **Other**, and leave the build command empty. Every push to `main` redeploys the site.
+
+To move to a custom domain, add it under **Settings › Domains** in Vercel, then replace `devmop.vercel.app` across `docs/` (canonical link, `og:` tags, `sitemap.xml`, `robots.txt`).
 
 ## Releasing
 
