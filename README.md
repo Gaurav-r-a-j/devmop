@@ -10,11 +10,13 @@ A native macOS app that shows where your disk space goes and safely frees what y
 
 ## Install
 
-Download the latest DMG from Releases, open it and drag DevMop to Applications. Then give it **Full Disk Access** in System Settings › Privacy & Security, so it can measure Library, Mail, Photos and the Trash.
+Download the latest DMG from [Releases](https://github.com/Gaurav-r-a-j/devmop/releases/latest), open it and drag DevMop to Applications. Then give it **Full Disk Access** in System Settings › Privacy & Security, so it can measure Library, Mail, Photos and the Trash.
 
 To build from source (macOS 14+, Xcode 16+):
 
 ```sh
+git clone https://github.com/Gaurav-r-a-j/devmop.git
+cd devmop
 make install      # build, install to /Applications and open
 make help         # every command
 ```
