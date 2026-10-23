@@ -12,7 +12,6 @@ swift test
 
 APP="build/DevMop.app"
 DMG="build/DevMop-$VERSION.dmg"
-STAGING="build/dmg"
 APP_ZIP="build/DevMop-$VERSION-app.zip"
 
 codesign --verify --strict --deep "$APP"
@@ -28,12 +27,7 @@ rm -f "$APP_ZIP"
 DSYM="$(swift build -c release --arch arm64 --arch x86_64 --show-bin-path)/DevMop.dSYM"
 [[ -d "$DSYM" ]] && ditto -c -k --keepParent "$DSYM" "build/DevMop-$VERSION.dSYM.zip"
 
-rm -rf "$STAGING" "$DMG"
-mkdir -p "$STAGING"
-cp -R "$APP" "$STAGING/"
-ln -s /Applications "$STAGING/Applications"
-hdiutil create -volname "DevMop $VERSION" -srcfolder "$STAGING" -ov -format UDZO "$DMG" >/dev/null
-rm -rf "$STAGING"
+VERSION="$VERSION" ./scripts/dmg.sh
 codesign --force --timestamp --sign "$SIGN_IDENTITY" "$DMG"
 
 xcrun notarytool submit "$DMG" --keychain-profile "$NOTARY_PROFILE" --wait

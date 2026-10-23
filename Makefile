@@ -3,7 +3,7 @@
 VERSION ?= 1.0.0
 REPO ?= Gaurav-r-a-j/devmop
 
-.PHONY: help build app install run test cli icon site og stats release clean
+.PHONY: help build app dmg install run test cli icon site og stats release clean
 
 help:
 	@echo "make build     Compile everything (debug)"
@@ -16,6 +16,7 @@ help:
 	@echo "make site      Open the website (docs/) in your browser"
 	@echo "make og        Re-render the link preview image docs/assets/og.png"
 	@echo "make stats     Download counts per release from GitHub (needs gh)"
+	@echo "make dmg       Unsigned DMG for a GitHub release (no Developer ID needed)"
 	@echo "make release   Signed, notarized DMG (needs SIGN_IDENTITY and VERSION)"
 	@echo "make clean     Remove build output"
 
@@ -27,6 +28,9 @@ test:
 
 app:
 	VERSION=$(VERSION) ./scripts/build-app.sh
+
+dmg: app
+	VERSION=$(VERSION) ./scripts/dmg.sh
 
 install:
 	VERSION=$(VERSION) ./scripts/install.sh

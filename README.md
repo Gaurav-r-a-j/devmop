@@ -83,7 +83,15 @@ To move to a custom domain, add it under **Settings › Domains** in Vercel, the
 
 ## Releasing
 
-One-time setup with an Apple Developer account:
+Without an Apple Developer account, build an unsigned DMG and attach it to a GitHub release:
+
+```sh
+make dmg VERSION=1.0.0   # build/DevMop-1.0.0.dmg
+```
+
+On GitHub, open **Releases › Draft a new release**, create the tag `v1.0.0`, paste the notes from [CHANGELOG.md](CHANGELOG.md), attach the DMG and publish. macOS will ask users to allow it once in **Privacy & Security** (see the Support page).
+
+For a signed, notarized build, one-time setup with an Apple Developer account:
 
 ```sh
 xcrun notarytool store-credentials devmop-notary --apple-id you@example.com --team-id TEAMID
