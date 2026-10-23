@@ -1,7 +1,7 @@
 # DevMop — run `make help` to see every command.
 
 VERSION ?= 1.0.0
-REPO ?= YOUR-USERNAME/devmop
+REPO ?= Gaurav-r-a-j/devmop
 
 .PHONY: help build app install run test cli icon site og stats release clean
 
